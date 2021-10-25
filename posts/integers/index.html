@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>cave@paintings:$ man int | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/integers/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>cave@paintings:$ man int</h1>
+    <time datetime="2021-06-06T15:27:00&#43;02:00">June 06, 2021</time>
+  </header>
+  <p>When dealing with math and computers it can be a tad bit confusing if you don&rsquo;t have all the basics down. This will primarily be a simple introduction to integers, and signedness.</p>
+<p>[Disclaimer: The following is very rudimentary, and should be known by anyone already - I primarily wrote it so I had something to link to, or something to refer to when I forgot about it]</p>
+<hr>
+<h1 id="what-does-64-bit-mean">What does 64-bit mean?</h1>
+<p>Most computers these days are 64-bit, but what does that mean? Well let&rsquo;s look at a 64-bit address:</p>
+<pre><code>0xdeadbeef12341234
+</code></pre><p>Now the length of the address is 8 bytes. But I counted 16? Well that is not bytes, remember that 0x41 is the byte value for A. Bytes can hold 255 different values, and therefor needs 2 integers to represent it.</p>
+<p>Let&rsquo;s look at 0x41, as our example. 0x41 consists of two numbers, these numbers are each represented in binary, and are represented individually. Let&rsquo;s look at 1.</p>
+<pre><code>0000 0001
+</code></pre><p>Let&rsquo;s then look at 4:</p>
+<pre><code>0000 0100
+</code></pre><p>Combined together that leaves us with:</p>
+<pre><code>0100 0001
+</code></pre><p>Which is the same as 0x41, which is the same as &ldquo;A&rdquo;</p>
+<p>Essentially a byte is made of a lower and upper nibble. These can max have: <code>1111</code>, otherwise it would overflow, and not be 4 bits of size. This means that each byte is 8 bits. If an address has 8 bytes which each is 8 bits, that would be 8*8 = 64. This is why it&rsquo;s called a 64-bit system.</p>
+<h1 id="signedness">Signedness</h1>
+<p>When dealing with integers in computer science, there&rsquo;s a lot of different ways of representing them - however it&rsquo;s always important to know whether you&rsquo;re dealing with an unsigned integer or a signed integer.</p>
+<p>Consider the <strong>sign</strong> &ldquo;-&rdquo;. If a number is: -10, -20, -30, -x &hellip; then it is considered a signed integer. However if it doesn&rsquo;t have any prefixed sign, then it would be considered an unsigned integer.</p>
+<p>So this would make the largest unsigned integer value in a 32-bit[4 bytes]:</p>
+<pre><code>1111 1111 1111 1111 1111 1111 1111 1111
+
+or 
+
+FFFF FFFF
+
+or 
+
+4294967295
+</code></pre><p>The largest unsigned integer value in a 64-bit[8 bytes] would be double:</p>
+<pre><code>1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
+
+or 
+
+FFFF FFFF FFFF FFFF
+
+or 
+
+18446744073709551615
+</code></pre><p>So this is the largest values for an unsigned integer, meaning that we don&rsquo;t consider the -1, -5, -7 representatives. Now if we would want to look at let&rsquo;s say the signed integer max or range for 32-bit it would simply be half, as half the numbers would now be used for negative numbers:</p>
+<p>This would leave us, in C with the range:</p>
+<pre><code>-2147483647-1 -&gt; 2147483647
+</code></pre><p>Smart smart. Now let&rsquo;s say we want to do calculate the following:</p>
+<pre><code>5-1
+</code></pre><p>How would we go about doing that in hex? The smart people that programmers are decided that the -1 would be 0xfffffffff, the max value would be the -1, so that it&rsquo;s easy to remember. Meaning that if we want to calculate the prior statement it would need to be</p>
+<pre><code>0x5+0xffffffff
+</code></pre><p>Interesting to say the least, and can be quite useful when doing reverse engineering ctf tasks.</p>
+
+</article>
+
+
+
+</html>

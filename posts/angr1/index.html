@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>Symbolic Execution with Angr: pt. 3 Actually angry | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/angr1/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>Symbolic Execution with Angr: pt. 3 Actually angry</h1>
+    <time datetime="2021-10-15T18:49:45&#43;02:00">October 15, 2021</time>
+  </header>
+  <h1 id="challenging">Challenging</h1>
+<p>This is a bit of a different post, and perhaps more in the blog spirit, as this is about frustrations I had solving a &ldquo;for fun&rdquo;-binary I had made myself to learn some angr, and it would simply not work. If you want to have a go first this is the binary:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;string.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(){
+    <span style="color:#66d9ef">char</span> option[<span style="color:#ae81ff">5</span>];
+
+    <span style="color:#66d9ef">char</span> flag[] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hahaimnotthelengthyouexpect</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>;
+    <span style="color:#66d9ef">char</span> flag_in[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>};
+
+    fgets(option, <span style="color:#ae81ff">5</span>, stdin);
+
+    <span style="color:#66d9ef">if</span> (strcmp(option, <span style="color:#e6db74">&#34;i</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+        {
+            printf(<span style="color:#e6db74">&#34;[+] First answer is correct!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+            printf(<span style="color:#e6db74">&#34;It&#39;s i!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+        
+            fgets(flag_in, <span style="color:#ae81ff">50</span>, stdin);
+
+            <span style="color:#66d9ef">if</span> (strcmp(flag_in, flag) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+                {
+                    printf(<span style="color:#e6db74">&#34;[+] Second answer is correct!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+                    printf(<span style="color:#e6db74">&#34;You found me!! </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+                    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+                }
+        }
+    
+    <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
+}
+</code></pre></div><p>As one can see it&rsquo;s a pretty forward binary, the rules are as follows:</p>
+<ol>
+<li>You must not read on, that&rsquo;s cheating!</li>
+<li>You must not set any of the letters as symbolic bitvectors, you may only use the information you know about the length of the strings
+Goal is not to get any flag, but rather to get the program to return 0.</li>
+</ol>
+<h1 id="point-of-no-return---spoilers-ahead">Point of No Return - Spoilers Ahead!</h1>
+<p>As one can read the flag has the string: &ldquo;haha im not the length you expect&rdquo;. Of course without spaces, and an appended newline at the end. This is what I was testing. I was testing how angr, worked when the script would read something different than the size of the buffer. Apparently it doesn&rsquo;t handle it well as we are about to see.</p>
+<p>I made a simple script quickly, made to just check it, how I would imagine it should be tested:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> angr
+
+proj <span style="color:#f92672">=</span> angr<span style="color:#f92672">.</span>Project(<span style="color:#e6db74">&#34;./codeexample.out&#34;</span>)
+
+state <span style="color:#f92672">=</span> proj<span style="color:#f92672">.</span>factory<span style="color:#f92672">.</span>entry_state(add_options<span style="color:#f92672">=</span>angr<span style="color:#f92672">.</span>options<span style="color:#f92672">.</span>unicorn)
+
+simgr <span style="color:#f92672">=</span> proj<span style="color:#f92672">.</span>factory<span style="color:#f92672">.</span>simulation_manager(state)
+simgr<span style="color:#f92672">.</span>explore(find<span style="color:#f92672">=</span><span style="color:#66d9ef">lambda</span> s: <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;found me&#34;</span> <span style="color:#f92672">in</span> s<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>dumps(<span style="color:#ae81ff">1</span>))
+
+<span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#34;found&#34;</span> <span style="color:#f92672">in</span> str(simgr):
+    s <span style="color:#f92672">=</span> simgr<span style="color:#f92672">.</span>found[<span style="color:#ae81ff">0</span>]
+    <span style="color:#66d9ef">print</span>(s<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>dumps(<span style="color:#ae81ff">0</span>)) <span style="color:#75715e"># Input </span>
+    <span style="color:#66d9ef">print</span>(s<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>dumps(<span style="color:#ae81ff">1</span>)) <span style="color:#75715e"># Output</span>
+</code></pre></div><p>Now for some reasons this does not work. Which I thought was weird. To test I checked if it would work upon some code written in good faith (eg. with the right sizes):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;string.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(){
+    <span style="color:#66d9ef">char</span> option[<span style="color:#ae81ff">5</span>];
+
+    <span style="color:#66d9ef">char</span> flag[] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hahaimnotthelengthyouexpect</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>;
+    <span style="color:#66d9ef">char</span> flag_in[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>};
+
+    fgets(option, <span style="color:#ae81ff">3</span>, stdin); <span style="color:#75715e">// Size is one more, as fgets read one less to ensure null at end (f\n\0)
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">if</span> (strcmp(option, <span style="color:#e6db74">&#34;i</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+        {
+            printf(<span style="color:#e6db74">&#34;[+] First answer is correct!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+            printf(<span style="color:#e6db74">&#34;It&#39;s i!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+        
+            fgets(flag_in, <span style="color:#ae81ff">29</span>, stdin); <span style="color:#75715e">// Same here
+</span><span style="color:#75715e"></span>
+            <span style="color:#66d9ef">if</span> (strcmp(flag_in, flag) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+                {
+                    printf(<span style="color:#e6db74">&#34;[+] Second answer is correct!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+                    printf(<span style="color:#e6db74">&#34;You found me!! </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+                    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+                }
+        }
+    
+    <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>;
+}
+</code></pre></div><p>Aaaand</p>
+<pre><code>b'i\nhahaimnotthelengthyouexpect\n'
+b'[+] First answer is correct!\nIt's i!\n[+] Second answer is correct!\nYou found me!! \n'
+</code></pre><p>So that works. Interesting.. hmm - I could assume that as angr is solving for the standard input as a symbolic bitvector, that when it sees the size, it assumes something. We see that the program is using fgets for the input, so to make sure how angr&rsquo;s fgets works we&rsquo;ll look at their source code.</p>
+<h1 id="unedited-source-code">Unedited source code</h1>
+<p>Have a quick look at the source code yourself, and then scroll on</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> angr
+<span style="color:#f92672">from</span> angr.storage.memory_mixins.address_concretization_mixin <span style="color:#f92672">import</span> MultiwriteAnnotation
+
+
+<span style="color:#f92672">from</span> cle.backends.externs.simdata.io_file <span style="color:#f92672">import</span> io_file_data_for_arch
+
+<span style="color:#75715e">######################################</span>
+<span style="color:#75715e"># fgets</span>
+<span style="color:#75715e">######################################</span>
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">fgets</span>(angr<span style="color:#f92672">.</span>SimProcedure):
+    <span style="color:#75715e">#pylint:disable=arguments-differ</span>
+
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">run</span>(self, dst, size, file_ptr):
+        <span style="color:#75715e"># let&#39;s get the memory back for the file we&#39;re interested in and find the newline</span>
+        fd_offset <span style="color:#f92672">=</span> io_file_data_for_arch(self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>arch)[<span style="color:#e6db74">&#39;fd&#39;</span>]
+        fd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>mem[file_ptr <span style="color:#f92672">+</span> fd_offset:]<span style="color:#f92672">.</span>int<span style="color:#f92672">.</span>resolved
+        simfd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>get_fd(fd)
+        <span style="color:#66d9ef">if</span> simfd <span style="color:#f92672">is</span> None:
+            <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+
+        <span style="color:#75715e"># case 0: empty read</span>
+        <span style="color:#66d9ef">if</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>is_true(size <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>):
+            <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+
+        <span style="color:#75715e"># case 1: the data is concrete. we should read it a byte at a time since we can&#39;t seek for</span>
+        <span style="color:#75715e"># the newline and we don&#39;t have any notion of buffering in-memory</span>
+        <span style="color:#66d9ef">elif</span> simfd<span style="color:#f92672">.</span>read_storage<span style="color:#f92672">.</span>concrete <span style="color:#f92672">and</span> <span style="color:#f92672">not</span> size<span style="color:#f92672">.</span>symbolic:
+            size <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>eval(size)
+            count <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+            <span style="color:#66d9ef">while</span> count <span style="color:#f92672">&lt;</span> size <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>:
+                data, real_size <span style="color:#f92672">=</span> simfd<span style="color:#f92672">.</span>read_data(<span style="color:#ae81ff">1</span>)
+                <span style="color:#66d9ef">if</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>is_true(real_size <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>):
+                    <span style="color:#66d9ef">break</span>
+                self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(dst <span style="color:#f92672">+</span> count, data)
+                count <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+                <span style="color:#66d9ef">if</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>is_true(data <span style="color:#f92672">==</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>):
+                    <span style="color:#66d9ef">break</span>
+            self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(dst <span style="color:#f92672">+</span> count, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>)
+            <span style="color:#66d9ef">return</span> count
+
+        <span style="color:#75715e"># case 2: the data is symbolic, the newline could be anywhere. Read the maximum number of bytes</span>
+        <span style="color:#75715e"># (SHORT_READS should take care of the variable length) and add a constraint to assert the</span>
+        <span style="color:#75715e"># newline nonsense.</span>
+        <span style="color:#75715e"># caveat: there could also be no newline and the file could EOF.</span>
+        <span style="color:#66d9ef">else</span>:
+            data, real_size <span style="color:#f92672">=</span> simfd<span style="color:#f92672">.</span>read_data(size<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+
+            <span style="color:#66d9ef">for</span> i, byte <span style="color:#f92672">in</span> enumerate(data<span style="color:#f92672">.</span>chop(<span style="color:#ae81ff">8</span>)):
+                self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>add_constraints(self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>If(
+                    i<span style="color:#f92672">+</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">!=</span> real_size, byte <span style="color:#f92672">!=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>, <span style="color:#75715e"># if not last byte returned, not newline</span>
+                    self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>Or(            <span style="color:#75715e"># otherwise one of the following must be true:</span>
+                        i<span style="color:#f92672">+</span><span style="color:#ae81ff">2</span> <span style="color:#f92672">==</span> size,                 <span style="color:#75715e"># - we ran out of space, or</span>
+                        simfd<span style="color:#f92672">.</span>eof(),                 <span style="color:#75715e"># - the file is at EOF, or</span>
+                        byte <span style="color:#f92672">==</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;</span>                <span style="color:#75715e"># - it is a newline</span>
+                    )))
+            self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(dst, data, size<span style="color:#f92672">=</span>real_size)
+            end_address <span style="color:#f92672">=</span> dst <span style="color:#f92672">+</span> real_size
+            end_address <span style="color:#f92672">=</span> end_address<span style="color:#f92672">.</span>annotate(MultiwriteAnnotation())
+            self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(end_address, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>)
+
+            <span style="color:#66d9ef">return</span> real_size
+
+fgets_unlocked <span style="color:#f92672">=</span> fgets
+</code></pre></div><h1 id="commented-source-code">Commented source code</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3"><span style="color:#f92672">import</span> angr
+<span style="color:#f92672">from</span> angr.storage.memory_mixins.address_concretization_mixin <span style="color:#66d9ef">import</span> MultiwriteAnnotation
+<span style="color:#f92672">from</span> cle.backends.externs.simdata.io_file <span style="color:#66d9ef">import</span> io_file_data_for_arch
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">fgets</span>(angr<span style="color:#f92672">.</span>SimProcedure):
+    <span style="color:#75715e">#pylint:disable=arguments-differ</span>
+
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">run</span>(self, dst, size, file_ptr):
+        <span style="color:#75715e"># let&#39;s get the memory back for the file we&#39;re interested in and find the newline</span>
+        fd_offset <span style="color:#f92672">=</span> io_file_data_for_arch(self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>arch)[<span style="color:#e6db74">&#39;fd&#39;</span>]
+        fd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>mem[file_ptr <span style="color:#f92672">+</span> fd_offset:]<span style="color:#f92672">.</span>int<span style="color:#f92672">.</span>resolved
+        simfd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>get_fd(fd)
+        <span style="color:#66d9ef">if</span> simfd <span style="color:#f92672">is</span> <span style="color:#66d9ef">None</span>:
+            <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+
+        <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">        We deleted case 0, as it&#39;s not an empty read
+</span><span style="color:#e6db74">        &#34;&#34;&#34;</span>
+        
+        <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">        We deleted case 1, as the data is not concrete
+</span><span style="color:#e6db74">        &#34;&#34;&#34;</span>
+
+   
+        <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">        An interesting line here can be found:
+</span><span style="color:#e6db74">        (SHORT_READS should take care of the variable length)
+</span><span style="color:#e6db74">        
+</span><span style="color:#e6db74">        What in the world is &#39;SHORT_READS&#39;?
+</span><span style="color:#e6db74">        On the documentation (http://angr.io/api-doc/angr.html) they say:
+</span><span style="color:#e6db74">
+</span><span style="color:#e6db74">        If the SHORT_READS option is enabled, reads will return a symbolic 
+</span><span style="color:#e6db74">        size constrained to be less than or equal to the requested size. 
+</span><span style="color:#e6db74">
+</span><span style="color:#e6db74">        So when we request something SHORT_READS will say &#39;Well it has to be that size!&#39;
+</span><span style="color:#e6db74">    
+</span><span style="color:#e6db74">        I then spent around an hour trying to read the documentation and figuring out
+</span><span style="color:#e6db74">        how one can exclude an option like that, but ended up with nothing useful.
+</span><span style="color:#e6db74">        
+</span><span style="color:#e6db74">        Probably because it was what used to take care of the variable length,
+</span><span style="color:#e6db74">        and now there&#39;s nothing that takes care of that...
+</span><span style="color:#e6db74">
+</span><span style="color:#e6db74">        Instead we can rehook fgets, but how should that look?
+</span><span style="color:#e6db74">        &#34;&#34;&#34;</span> 
+
+        <span style="color:#66d9ef">else</span>:
+            data, real_size <span style="color:#f92672">=</span> simfd<span style="color:#f92672">.</span>read_data(size<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) <span style="color:#75715e"># How much fgets will read</span>
+
+            <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">            for i, byte in enumerate(data.chop(8)):
+</span><span style="color:#e6db74">                self.state.add_constraints(self.state.solver.If(
+</span><span style="color:#e6db74">                     i+1 != real_size, byte != b&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;, # This line is bad, as it assumes code is in good faith (?)
+</span><span style="color:#e6db74">                     self.state.solver.Or(            # And if that line is bad, so is the entire block (?)
+</span><span style="color:#e6db74">                         i+2 == size,                 
+</span><span style="color:#e6db74">                         simfd.eof(),                 
+</span><span style="color:#e6db74">                         byte == b&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#39;                
+</span><span style="color:#e6db74">                     )))
+</span><span style="color:#e6db74">            &#34;&#34;&#34;</span>
+
+            self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(dst, data, size<span style="color:#f92672">=</span>real_size)
+            end_address <span style="color:#f92672">=</span> dst <span style="color:#f92672">+</span> real_size
+            end_address <span style="color:#f92672">=</span> end_address<span style="color:#f92672">.</span>annotate(MultiwriteAnnotation())
+            self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(end_address, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>)
+
+            <span style="color:#66d9ef">return</span> real_size
+
+fgets_unlocked <span style="color:#f92672">=</span> fgets
+</code></pre></div><h1 id="final-working-fgets">Final working fgets</h1>
+<p>Anyways this is the working fgets.py for this atleast:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3"><span style="color:#f92672">import</span> angr; <span style="color:#f92672">from</span> cle.backends.externs.simdata.io_file <span style="color:#66d9ef">import</span> io_file_data_for_arch; <span style="color:#f92672">from</span> angr.storage.memory_mixins.address_concretization_mixin <span style="color:#66d9ef">import</span> MultiwriteAnnotation
+
+<span style="color:#75715e"># New fgets</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">fgets</span>(angr<span style="color:#f92672">.</span>SimProcedure):
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">run</span>(self, dst, size, file_ptr):
+        fd_offset <span style="color:#f92672">=</span> io_file_data_for_arch(self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>arch)[<span style="color:#e6db74">&#39;fd&#39;</span>]
+        fd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>mem[file_ptr <span style="color:#f92672">+</span> fd_offset:]<span style="color:#f92672">.</span>int<span style="color:#f92672">.</span>resolved
+        simfd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>get_fd(fd)
+
+        data, real_size <span style="color:#f92672">=</span> simfd<span style="color:#f92672">.</span>read_data(size<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+        self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(dst, data, size<span style="color:#f92672">=</span>real_size)
+        end_address <span style="color:#f92672">=</span> dst <span style="color:#f92672">+</span> real_size
+        end_address <span style="color:#f92672">=</span> end_address<span style="color:#f92672">.</span>annotate(MultiwriteAnnotation())
+        self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(end_address, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>)
+
+        <span style="color:#66d9ef">return</span> real_size
+</code></pre></div><p>Now for some reason, this works, and why is somewhat still a mystery. It seems that the constraints are messing with it, but why that is, I do not understand. I found out that to use the exclude shortreads, you would use it when calling simfd.read:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">simfd<span style="color:#f92672">.</span>read_data(size<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, short_reads<span style="color:#f92672">=</span>False)
+</code></pre></div><p>But this still doesn&rsquo;t go through. I also tried removing each constraint one by one, but that didn&rsquo;t help.. I even tried creating a bitvector in the loop, and adding that as a constraint for the byte instead like:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">for</span> i, byte <span style="color:#f92672">in</span> enumerate(data<span style="color:#f92672">.</span>chop(<span style="color:#ae81ff">8</span>)):
+    inp <span style="color:#f92672">=</span> claripy<span style="color:#f92672">.</span>BVS(<span style="color:#e6db74">&#34;iS&#34;</span>,<span style="color:#ae81ff">8</span>)
+    bs <span style="color:#f92672">=</span> claripy<span style="color:#f92672">.</span>Concat(<span style="color:#f92672">*</span>inp)
+    self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>add_constraints(self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>solver<span style="color:#f92672">.</span>add(byte <span style="color:#f92672">==</span> bs))
+</code></pre></div><h1 id="final-script-and-half-assed-conclusion">Final script and half-assed conclusion</h1>
+<p>I don&rsquo;t understand angr</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3"><span style="color:#f92672">import</span> angr
+<span style="color:#f92672">import</span> claripy
+<span style="color:#f92672">from</span> angr.storage.memory_mixins.address_concretization_mixin <span style="color:#66d9ef">import</span> MultiwriteAnnotation
+<span style="color:#f92672">from</span> cle.backends.externs.simdata.io_file <span style="color:#66d9ef">import</span> io_file_data_for_arch
+
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">fgets</span>(angr<span style="color:#f92672">.</span>SimProcedure):
+    <span style="color:#75715e">#pylint:disable=arguments-differ</span>
+
+    <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">run</span>(self, dst, size, file_ptr):
+        <span style="color:#75715e"># let&#39;s get the memory back for the file we&#39;re interested in and find the newline</span>
+        fd_offset <span style="color:#f92672">=</span> io_file_data_for_arch(self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>arch)[<span style="color:#e6db74">&#39;fd&#39;</span>]
+        fd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>mem[file_ptr <span style="color:#f92672">+</span> fd_offset:]<span style="color:#f92672">.</span>int<span style="color:#f92672">.</span>resolved
+        simfd <span style="color:#f92672">=</span> self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>get_fd(fd)
+
+        data, real_size <span style="color:#f92672">=</span> simfd<span style="color:#f92672">.</span>read_data(size<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, short_reads<span style="color:#f92672">=</span><span style="color:#66d9ef">False</span>)
+        self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(dst, data, size<span style="color:#f92672">=</span>real_size)
+        end_address <span style="color:#f92672">=</span> dst <span style="color:#f92672">+</span> real_size
+        end_address <span style="color:#f92672">=</span> end_address<span style="color:#f92672">.</span>annotate(MultiwriteAnnotation())
+        self<span style="color:#f92672">.</span>state<span style="color:#f92672">.</span>memory<span style="color:#f92672">.</span>store(end_address, <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\0</span><span style="color:#e6db74">&#39;</span>)
+
+        <span style="color:#66d9ef">return</span> real_size
+
+
+project <span style="color:#f92672">=</span> angr<span style="color:#f92672">.</span>Project(<span style="color:#e6db74">&#34;./codeexample.out&#34;</span>)
+project<span style="color:#f92672">.</span>hook_symbol(<span style="color:#e6db74">&#39;fgets&#39;</span>, fgets())
+
+state <span style="color:#f92672">=</span> project<span style="color:#f92672">.</span>factory<span style="color:#f92672">.</span>full_init_state(add_options<span style="color:#f92672">=</span>angr<span style="color:#f92672">.</span>options<span style="color:#f92672">.</span>unicorn)
+
+simgr <span style="color:#f92672">=</span> project<span style="color:#f92672">.</span>factory<span style="color:#f92672">.</span>simgr(state)
+simgr<span style="color:#f92672">.</span>explore(find<span style="color:#f92672">=</span><span style="color:#66d9ef">lambda</span> s: <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;found me&#34;</span> <span style="color:#f92672">in</span> s<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>dumps(<span style="color:#ae81ff">1</span>))
+
+
+<span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#34;found&#34;</span> <span style="color:#f92672">in</span> str(simgr):
+
+    s <span style="color:#f92672">=</span> simgr<span style="color:#f92672">.</span>found[<span style="color:#ae81ff">0</span>]
+    print(s<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>dumps(<span style="color:#ae81ff">1</span>))
+
+    flag <span style="color:#f92672">=</span> s<span style="color:#f92672">.</span>posix<span style="color:#f92672">.</span>dumps(<span style="color:#ae81ff">0</span>)
+    print(flag)
+</code></pre></div>
+</article>
+
+
+
+</html>

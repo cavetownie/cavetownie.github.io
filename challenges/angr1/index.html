@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>angr1 - baby&#39;s first angr (1/5) | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/challenges/angr1/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>angr1 - baby&#39;s first angr (1/5)</h1>
+    <time datetime="2021-09-16T22:57:00&#43;02:00">September 16, 2021</time>
+  </header>
+  <h1 id="about-challenge">About challenge</h1>
+<p>Author: cave</p>
+<p>Date created: 2021-09-16</p>
+<p>This challenge is an easy challenge I wrote for myself to learn about angr. Provided will be the source code, but no solutions.</p>
+<p>Goal: While the flag is obviously {help}, the goal is to get angr to find it, without using any constraints to determine any of the characters. Assume you know only the length, and none of the characters. You want to get the &ldquo;Its the FLAG&rdquo; message.</p>
+<h1 id="source-code">Source code</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/*
+</span><span style="color:#75715e">Author: Cave
+</span><span style="color:#75715e">Difficulty: 1/5 
+</span><span style="color:#75715e">*/</span>
+
+<span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;string.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(){
+    <span style="color:#66d9ef">char</span> option[<span style="color:#ae81ff">5</span>];
+    <span style="color:#66d9ef">char</span> flag[] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;flag{help}</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>;
+    <span style="color:#66d9ef">char</span> flag_in[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>};
+
+    fgets(option, <span style="color:#ae81ff">5</span>, stdin);
+    <span style="color:#66d9ef">if</span> (strcmp(option, <span style="color:#e6db74">&#34;lol</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+        { 
+            printf(<span style="color:#e6db74">&#34;[+] First answer is correct! &#34;</span>);
+            printf(<span style="color:#e6db74">&#34;It&#39;s &#39;lol&#39;!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+        
+            fgets(flag_in, <span style="color:#ae81ff">50</span>, stdin);
+
+            <span style="color:#66d9ef">if</span> (strcmp(flag_in, flag) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+                { 
+                    printf(<span style="color:#e6db74">&#34;[+] Second answer is correct! &#34;</span>);
+                    printf(<span style="color:#e6db74">&#34;It&#39;s THE FLAGGGG!: &#39;%s&#39;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, flag);
+                }   
+        }
+        
+    <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>; 
+}
+
+</code></pre></div>
+</article>
+
+
+
+</html>

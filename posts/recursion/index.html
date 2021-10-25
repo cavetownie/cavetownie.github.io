@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>cave@paintings:$ man recursion | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/recursion/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>cave@paintings:$ man recursion</h1>
+    <time datetime="2021-06-27T21:18:00&#43;02:00">June 27, 2021</time>
+  </header>
+  <p>Today I learnt about recursion. A weird concept to be fair, and it took me quite some time to wrap my head around it. I&rsquo;ll try to explain it like you are 3 years old and have the same brain capacity as I do, or lack thereof to be precise.</p>
+<h1 id="eli5-recursion">ELI5: Recursion</h1>
+<p>Imagine you&rsquo;re drawing a picture. Now in the picture you want to depict you, drawing the same picture. In that picture you want to depict you, drawing the same picture, and so on. This would be the simple explanation of recursion. This can specifically be useful, as it can make everything take up less memory - if you use the return value for a function, to call that same function and use that return value to call that function again, you&rsquo;ll not need to declare variables for all these return values, and you&rsquo;ll only need to use one function call or something like that. Now the simple example often shown when explaining recursion is the &ldquo;factorial&rdquo; example.
+<!-- raw HTML omitted --><!-- raw HTML omitted -->
+Factorial is a term from math, that means to take a number <em>n</em> and multiply it with <em>n-1</em> till you&rsquo;re at <em>n=1</em>. That would mean:</p>
+<pre><code>Example: n = 8
+
+Factorial(n) = 8*7*6*5*4*3*2*1 
+= 40320
+</code></pre><p>Now let&rsquo;s try taking the normally used coding example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">factorial</span>(n):
+	<span style="color:#66d9ef">if</span> n <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span>:
+		<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">1</span>
+	<span style="color:#66d9ef">else</span>:
+		<span style="color:#66d9ef">return</span> n<span style="color:#f92672">*</span>factorial(n<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+</code></pre></div><p>Now this can be a bit difficult to visualize, but with the example <code>factorial(4)</code>, what&rsquo;s happening is:</p>
+<ol>
+<li>n = 4, call 4*factorial(4-1)</li>
+<li>n = 3, call 3*factorial(3-1)</li>
+<li>n = 2, call 2*factorial(2-1)</li>
+<li>n = 1, return 1</li>
+<li>return 2*factorial(2-1)</li>
+<li>return 3*factorial(3-1)</li>
+<li>return 4*factorial(4-1)</li>
+<li>return the total calculated sum to the program variable</li>
+</ol>
+<p>Let us examine the following code:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">A</span>(n):
+	<span style="color:#66d9ef">if</span> n <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">1</span>:
+		A(n<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+		<span style="color:#66d9ef">print</span>(n) 
+</code></pre></div><p>So let&rsquo;s look at the output for <code>A(3)</code>:</p>
+<pre><code>1
+2
+3
+</code></pre><p>Weird, it&rsquo;s printing the &ldquo;1&rdquo; first? Well let&rsquo;s consider the painting a picture scenario again. Specifically you would need to have what&rsquo;s called a &ldquo;terminating condition&rdquo;, somewhere to start from, or rather somewhere to end. If we wanted to paint the picture we would need to set some boundary of &ldquo;inception&rdquo;, and start there. We start at the end, so to speak.</p>
+<p>Let&rsquo;s look at this stolen picture:</p>
+<p><img src="https://cavetownie.github.io/pictures/recursion.png" alt="Recursion"></p>
+<p>On the tree it&rsquo;s possible to see that <em>A(3)</em> calls print(3), and also <em>A(2)</em>, which calles print(2), but also <em>A(1)</em>, and so on. Essentially what is happening is a down-up execution. So A(0) is the first thing to be executed, then A(1) and so on, till it finally comes to the &ldquo;beginning&rdquo;.</p>
+<p>Now as the recursive function is put before the print, that means that will have to be resolved before the print statements. Which means that it will go to the innermost function, resolve the print statement there, go out once resolve the print statement there, and so on. If we however switched the print statement to be before as follows:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">A</span>(n):
+    <span style="color:#66d9ef">if</span> n <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">1</span>:
+        <span style="color:#66d9ef">print</span>(n)
+        A(n<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+</code></pre></div><p>We would see the opposite behavior:</p>
+<pre><code>3
+2
+1
+</code></pre><p>Now the reason I got into this rabbithole in the first place, was because I was playing with implementing the extended euclidian algorithm in C, and an example I followed used this recursion, and I got very confused as to what was happening. Now to explain that is still a bit confusing because:<!-- raw HTML omitted --><!-- raw HTML omitted -->
+<!-- raw HTML omitted --><!-- raw HTML omitted --></p>
+<p>☆.。.:<em>・°☆.。.:</em>・M - A - T - H °☆.。.:<em>・°☆.。.:</em>・°☆</p>
+
+</article>
+
+
+
+</html>

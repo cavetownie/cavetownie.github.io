@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>cave@paintings:$ man gcd | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/gcd/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>cave@paintings:$ man gcd</h1>
+    <time datetime="2021-06-28T14:18:00&#43;02:00">June 28, 2021</time>
+  </header>
+  <p>The greatest common denominator between two number is the number than is divisible with both. For instance, let&rsquo;s think about the numbers, <code>3</code> and <code>7</code>, both of which are prime numbers, and therefore only divisible by themselves and 1. The greates common denominator between those, most then be 1, simple enough, right? Now the greek mathematician Euclid, decided that it would be nice to have an algorithmic way of calculating this, so you don&rsquo;t have to rely on just &ldquo;knowing&rdquo; it, but instead had a series of formulas or a method to calculate it simply. This is, because of his name, called the euclidian algorithm or sometimes euclid&rsquo;s algorithm. It goes like this:</p>
+<pre><code>Suppose we want to know the gcd of 56 and 15:
+
+We find the remainder between the two, then we find the remainder
+between the smaller number of the two and the newer remainder, and so on
+
+56 / 15 = 3, remainder of 11
+15 / 11 = 1, remainder of 4
+11 / 4 = 2, remainder of 3
+4 / 3 = 1, remainder of 1
+</code></pre><p>As such the greatest common denominator can be found, and in this case the remainder in the end was one, and thus that&rsquo;s the greatest common denominator. We would however also like a terminating case, so that we know when we&rsquo;re actually at the end. This can be done by looking, at when the remainder is 0:</p>
+<pre><code>4 / 3 = 1, remainder of 1
+3 / 1 = 3, remainder of 0 - Prior statement must be the true
+</code></pre><p>We would furthermore also like to have an algebraic way of expressing this, with letters instead of numbers.</p>
+<pre><code>a%b = r
+b%r = r1
+r%r1 = r2
+
+Or rather:
+a%b = r
+
+a = b
+b = r
+
+a%b = b%r = r1
+</code></pre><p>Let&rsquo;s now try to implement it in python:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">g</span>(a,b):
+	<span style="color:#66d9ef">if</span> a<span style="color:#f92672">%</span>b <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>:
+		<span style="color:#66d9ef">return</span> b
+	<span style="color:#66d9ef">return</span> g(b, a<span style="color:#f92672">%</span>b)
+</code></pre></div><p>Okay step by step, let&rsquo;s go through the implementation. We are using recursion to keep this going till we hit the point when remainder is equal to 0. When the function is called, the a value is replaced by the new b value and the b value is the remainder, which is also calculated as a%b. Now when we finally hit the point where a%b == 0, it returns b to the g(b, a%b) function call, and thus returns that to the main program. Below is a diagram that explains it a bit better, for the example of 56 and 15:</p>
+<pre><code>       gcd(56, 15)
+           │
+    ┌──────┘
+    │      ▲
+    ▼ ─────┘
+gcd(15,11)
+    │ ▲
+    │ │
+    ▼ │
+gcd(11,4)
+    │ ▲
+    │ │
+    ▼ │
+gcd(4,3)
+    │ ▲
+    │ │
+    │ │
+    ▼ │
+gcd(3,1)
+    │ ▲
+    │ │
+    ▼ │
+return b
+</code></pre><p>It&rsquo;s crucial that each of these gcd functions has a return, otherwise the b-value doesn&rsquo;t have a way of getting back to the main.</p>
+<p>Important for a number of reasons (From Wikipedia):</p>
+<pre><code> Computations using this algorithm form part of the cryptographic protocols that are used to secure internet communications, and in methods for breaking these cryptosystems by factoring large composite numbers.
+</code></pre><p>Next up &ldquo;extended gcd&rdquo; :)</p>
+
+</article>
+
+
+
+</html>

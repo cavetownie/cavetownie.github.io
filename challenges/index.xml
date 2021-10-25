@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Challenges on </title>
+    <link>https://cavetownie.github.io/challenges/</link>
+    <description>Recent content in Challenges on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 16 Sep 2021 22:57:00 +0200</lastBuildDate><atom:link href="https://cavetownie.github.io/challenges/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>angr1 - baby&#39;s first angr (1/5)</title>
+      <link>https://cavetownie.github.io/challenges/angr1/</link>
+      <pubDate>Thu, 16 Sep 2021 22:57:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/challenges/angr1/</guid>
+      <description>About challenge Author: cave
+Date created: 2021-09-16
+This challenge is an easy challenge I wrote for myself to learn about angr. Provided will be the source code, but no solutions.
+Goal: While the flag is obviously {help}, the goal is to get angr to find it, without using any constraints to determine any of the characters. Assume you know only the length, and none of the characters. You want to get the &amp;ldquo;Its the FLAG&amp;rdquo; message.</description>
+    </item>
+    
+  </channel>
+</rss>

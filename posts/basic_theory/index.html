@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>cave@paintings:$ man stack &amp;&amp; man overflow | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/basic_theory/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>cave@paintings:$ man stack &amp;&amp; man overflow</h1>
+    <time datetime="2021-05-23T18:03:05&#43;02:00">May 23, 2021</time>
+  </header>
+  <h1 id="stack">Stack</h1>
+<p>Memory is divided into three regions:
+<strong>Data</strong>, <strong>Text</strong>, and <strong>Stack</strong></p>
+<p>In the data segment one usually finds strings or other statically created variables. In a C program, these are variables that reside outside of functions, and therefore are static.</p>
+<p>In the text segment one will find compiled C code turnt into machine code, machine code is called &ldquo;assembly&rdquo;</p>
+<p>The stack is a datastructure used to hold variables initialized during runtime. This includes data in local functions or function arguments.</p>
+<p>While dynamically allocated memory, such as allocating memory during runtime and freeing said memory would be storedon the &ldquo;heap&rdquo;.</p>
+<pre><code>┌────────┐  Lower memory addresses
+│        │
+│  Text  │
+│        │
+├────────┤
+│Init*   │
+│  Data  │
+│Uninit* │
+├────────┤
+│        │
+│  Stack │
+│        │
+└────────┘  Higher memory addresses
+</code></pre><p>So at the lower memory addresses we have our code, in the data segment we have to parts, the initialized data and the uninitialized data. Where the initialized data is at the lower memory address.
+The stack is at the higher memory addresses.</p>
+<h1 id="overflow">Overflow</h1>
+<p>An overflow is essentially when this stack, isn&rsquo;t given some boundary check condition, and therefor allows users with malicious intent to put in too much data. In the same way, as if one is to pour water into a glass, and just continues pouring after the glass is full.</p>
+<p>An example of a vulnerable program could be the following:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(){
+	<span style="color:#66d9ef">char</span> vulnerable_buffer[<span style="color:#ae81ff">20</span>];
+	gets(vulnerable_buffer);
+}
+</code></pre></div><p>the &ldquo;gets&rdquo; function reads user input (from stdin file descriptor), but doesn&rsquo;t check the size of the user input. As indicated by the square brackets of the vulnerable buffer, the buffer is able to hold 20 bytes. Now if the user was to put in more than 20 bytes of data, the user would&rsquo;ve overflowed the buffer.</p>
+
+</article>
+
+
+
+</html>

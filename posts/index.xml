@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on </title>
+    <link>https://cavetownie.github.io/posts/</link>
+    <description>Recent content in Posts on </description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 26 Oct 2021 00:01:00 +0200</lastBuildDate><atom:link href="https://cavetownie.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Adventures in Heap: Heapoverflow, Leak, and Pwndocker</title>
+      <link>https://cavetownie.github.io/posts/heapadventures_ep1_baby/</link>
+      <pubDate>Tue, 26 Oct 2021 00:01:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/heapadventures_ep1_baby/</guid>
+      <description>Setup for the lazy As it&amp;rsquo;s difficult to find proper ressources for learning pwn, I&amp;rsquo;ll here do my best to explain my troubles solving the challenge &amp;ldquo;babyheap&amp;rdquo; from 0ctf. &amp;ldquo;Babyheap&amp;rdquo; is a challenge in the github repository made by Shellphish called &amp;ldquo;How2Heap&amp;rdquo;, which I can only recommend. It might be close to impossible to solve any of the challenges without prior knowledge, but luckily they link writeups, which can be followed.</description>
+    </item>
+    
+    <item>
+      <title>Symbolic Execution with Angr: pt. 3 Actually angry</title>
+      <link>https://cavetownie.github.io/posts/angr1/</link>
+      <pubDate>Fri, 15 Oct 2021 18:49:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/angr1/</guid>
+      <description>Challenging This is a bit of a different post, and perhaps more in the blog spirit, as this is about frustrations I had solving a &amp;ldquo;for fun&amp;rdquo;-binary I had made myself to learn some angr, and it would simply not work. If you want to have a go first this is the binary:
+#include &amp;lt;stdio.h&amp;gt;#include &amp;lt;string.h&amp;gt; int main(){ char option[5]; char flag[] = &amp;#34;hahaimnotthelengthyouexpect\n&amp;#34;; char flag_in[50] = {0}; fgets(option, 5, stdin); if (strcmp(option, &amp;#34;i\n&amp;#34;) == 0) { printf(&amp;#34;[+] First answer is correct!</description>
+    </item>
+    
+    <item>
+      <title>Symbolic Execution with Angr: pt. 2 Usage Introduction</title>
+      <link>https://cavetownie.github.io/posts/angr0/</link>
+      <pubDate>Wed, 29 Sep 2021 13:04:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/angr0/</guid>
+      <description>Simple usage import angr import claripy When you&amp;rsquo;re playing with angr, inevitably at the beginning you&amp;rsquo;ll have to load a binary of some form, you can do this the following way:
+project_name = angr.Project(&amp;#34;./&amp;lt;binary_name&amp;gt;&amp;#34;) Now angr works by using a lot of states which it steps through and investigates. To load our initial state we use the following command:
+state = proj.factory.entry_state() There are a few ways to load binaries, as one would imagine.</description>
+    </item>
+    
+    <item>
+      <title>Symbolic Execution with Angr: pt. 1 Theoretical Introduction</title>
+      <link>https://cavetownie.github.io/posts/angr_helloworld/</link>
+      <pubDate>Wed, 29 Sep 2021 12:09:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/angr_helloworld/</guid>
+      <description>What is symbolic execution? One might relate it to symbolic equations from mathematics in school. A few exambles of symbolic equations might be:
+a²+b²=c² E=hf F=ma These are examples of symbolic equations. Values are defined based on symbols we call different things. For the symbols we could define constraints, eg. &amp;ldquo;f&amp;rdquo; must be larger than 0. or &amp;ldquo;a&amp;rdquo; is equal to 9.82 N/kg. Thus minimizing the amount of results or outcomes.</description>
+    </item>
+    
+    <item>
+      <title>Format string: A Mini Study - with challenge</title>
+      <link>https://cavetownie.github.io/posts/htb_format/</link>
+      <pubDate>Wed, 08 Sep 2021 15:33:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/htb_format/</guid>
+      <description>Format string: A Mini Study - with challenge This will be a short, and practical walkthrough of the concept &amp;ldquo;format string&amp;rdquo;, with an example of how to solve a format string challenge.
+Research and everything format string Format is a pwn task on HackTheBox revolving around the idea of format strings (eg. %s, %d, %p), which is a C feature, that allows a strings to contain both words and variables in one.</description>
+    </item>
+    
+    <item>
+      <title>ELI5 Password Hashing</title>
+      <link>https://cavetownie.github.io/posts/eli5hashing/</link>
+      <pubDate>Mon, 09 Aug 2021 19:16:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/eli5hashing/</guid>
+      <description>Short history of cryptography Since the dawn of time, communication has been one of the largest parts of society. When leading wars, on foreign fronts, or planning to overthrow governments it was often important to have means of communication, that couldn&amp;rsquo;t be read by the enemy. This lead to cryptography, where ciphers were made based on some sort of preposition, and should be able to be decrypted, so that only the proper recipients could read the messages.</description>
+    </item>
+    
+    <item>
+      <title>cave@paintings:$ man egcd</title>
+      <link>https://cavetownie.github.io/posts/egcd/</link>
+      <pubDate>Tue, 29 Jun 2021 10:29:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/egcd/</guid>
+      <description>Aaah yes the world of algorithms, last post we looked at the euclidian algorithm which is used to find the greatest common divisor. This time we&amp;rsquo;ll be looking at something a bit different. Specifically, how do we find the values of x and y in the following formula:
+a*x+b*y = gcd(a,b) Now to find these is also an algorithmic process and as an extension of the normal euclidian algorithm, this one is called the &amp;ldquo;extended euclidian algorithm&amp;rdquo;.</description>
+    </item>
+    
+    <item>
+      <title>cave@paintings:$ man gcd</title>
+      <link>https://cavetownie.github.io/posts/gcd/</link>
+      <pubDate>Mon, 28 Jun 2021 14:18:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/gcd/</guid>
+      <description>The greatest common denominator between two number is the number than is divisible with both. For instance, let&amp;rsquo;s think about the numbers, 3 and 7, both of which are prime numbers, and therefore only divisible by themselves and 1. The greates common denominator between those, most then be 1, simple enough, right? Now the greek mathematician Euclid, decided that it would be nice to have an algorithmic way of calculating this, so you don&amp;rsquo;t have to rely on just &amp;ldquo;knowing&amp;rdquo; it, but instead had a series of formulas or a method to calculate it simply.</description>
+    </item>
+    
+    <item>
+      <title>cave@paintings:$ man recursion</title>
+      <link>https://cavetownie.github.io/posts/recursion/</link>
+      <pubDate>Sun, 27 Jun 2021 21:18:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/recursion/</guid>
+      <description>Today I learnt about recursion. A weird concept to be fair, and it took me quite some time to wrap my head around it. I&amp;rsquo;ll try to explain it like you are 3 years old and have the same brain capacity as I do, or lack thereof to be precise.
+ELI5: Recursion Imagine you&amp;rsquo;re drawing a picture. Now in the picture you want to depict you, drawing the same picture. In that picture you want to depict you, drawing the same picture, and so on.</description>
+    </item>
+    
+    <item>
+      <title>pwnablexyz: xor</title>
+      <link>https://cavetownie.github.io/posts/xor/</link>
+      <pubDate>Mon, 21 Jun 2021 16:03:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/xor/</guid>
+      <description>Pwn challenge from pwnable.xyz.
+Setup Now install the file on a UNIX system, and extract the challenge using following command:tar -xf &amp;lt;filename&amp;gt;.gz
+In the image folder, the challenge will be. When the file has been located, let&amp;rsquo;s use chmod +x to make it executable.
+Recon pt. 0 - Running, and security measurements cave@paintings:~/PWN/Pwnablexyz/xor$ ./challenge The Poopolator &amp;gt; 💩 4 2 1 Result: 6 &amp;gt; 💩 111 111 2 Result: 0 &amp;gt; 💩 Nothing really interesting to be gained from the usage - no menu or anything.</description>
+    </item>
+    
+    <item>
+      <title>pwnablexyz: note</title>
+      <link>https://cavetownie.github.io/posts/note/</link>
+      <pubDate>Sat, 19 Jun 2021 18:03:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/note/</guid>
+      <description>Note is a pwn challenge on pwnable.xyz. It&amp;rsquo;s quite an interesting challenge where I learnt a lot.
+Setup Now install the file on a UNIX system, and extract the challenge using following command:tar -xf &amp;lt;filename&amp;gt;.gz
+In the image folder, the challenge will be. When the file has been located, let&amp;rsquo;s use chmod +x to make it executable.
+Recon pt.0 Let&amp;rsquo;s start by looking at the binary a bit, firstly let&amp;rsquo;s run it.</description>
+    </item>
+    
+    <item>
+      <title>cave@paintings:$ man int</title>
+      <link>https://cavetownie.github.io/posts/integers/</link>
+      <pubDate>Sun, 06 Jun 2021 15:27:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/integers/</guid>
+      <description>When dealing with math and computers it can be a tad bit confusing if you don&amp;rsquo;t have all the basics down. This will primarily be a simple introduction to integers, and signedness.
+[Disclaimer: The following is very rudimentary, and should be known by anyone already - I primarily wrote it so I had something to link to, or something to refer to when I forgot about it]
+ What does 64-bit mean?</description>
+    </item>
+    
+    <item>
+      <title>pwn2win 2021: &#34;Oldschool Adventures - Apple II&#34;</title>
+      <link>https://cavetownie.github.io/posts/oldschool_adventures/</link>
+      <pubDate>Tue, 01 Jun 2021 17:17:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/oldschool_adventures/</guid>
+      <description>Oldschool Adventures - Description Dockerfiles: Oldschool_Adventure
+Challenge description:
+We found this Rhiza&amp;rsquo;s Government Server, and we need to access it! It runs an Apple II emulator and accepts codes in Applesoft BASIC. If the result of your code generates a valid QR Code standard (not micro QR), it will be read and the content will be executed as a shell command on the Linux system. A very interesting way to interact with a server, don&amp;rsquo;t you think?</description>
+    </item>
+    
+    <item>
+      <title>Install Ghidra on Windows for Dummies</title>
+      <link>https://cavetownie.github.io/posts/ghidra_install/</link>
+      <pubDate>Wed, 26 May 2021 21:17:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/ghidra_install/</guid>
+      <description>I always forget how to install Ghidra whenever I need it on a windows machine, because it&amp;rsquo;s so simple for linux, I just run the following shell script: https://github.com/bkerler/ghidra_installer
+ Step 1. Navigate to https://ghidra-sre.org
+Step 2. Click &amp;ldquo;Download Ghidra vX.Y.Z&amp;rdquo;
+Step 3. Right-Click the installed zip file, and click &amp;ldquo;Extract All&amp;hellip;&amp;rdquo;
+Step 4. The folder should be extracted to the download folder, as this works for me and other folders doesn&amp;rsquo;t.</description>
+    </item>
+    
+    <item>
+      <title>Adventures in Heap: Malloc, Free, and Fastbin Dup</title>
+      <link>https://cavetownie.github.io/posts/heapadventures_ep0/</link>
+      <pubDate>Tue, 25 May 2021 18:20:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/heapadventures_ep0/</guid>
+      <description>Heap is like the wild west of binary exploitation in my opinion, or perhaps more like an alien, no one knows what is happening (atleast I don&amp;rsquo;t). A lot of CTF pwn challenges these days are heap exploitations, even the simpler ones, so let&amp;rsquo;s learn some heap. So let&amp;rsquo;s get started.
+Malloc Malloc is a function in C, which can handle the allocation of memory. Which is why it&amp;rsquo;s called m alloc [memory alloc].</description>
+    </item>
+    
+    <item>
+      <title>ROPEmporium: badchars 32-bit</title>
+      <link>https://cavetownie.github.io/posts/badchars32bit/</link>
+      <pubDate>Mon, 24 May 2021 19:58:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/badchars32bit/</guid>
+      <description>Writeup of bad characters [badchars] on ROPEmporium Prerequisites: Knowledge from previous challs, XOR (Exclusive Or)
+ This was a more difficult exploit to create, due to the fact that we had bad characters
+As usual I started checking the security settings on the binary provided
+cave@noobpwn:~/binexp/ROP-emperium/badchars_32$ checksec badchars32 [*] &amp;#39;/home/cave/binexp/ROP-emperium/badchars_32/badchars32&amp;#39; Arch: i386-32-little RELRO: Partial RELRO Stack: No canary found NX: NX enabled PIE: No PIE (0x8048000) RUNPATH: b&amp;#39;.&amp;#39; We see that there is NX enabled.</description>
+    </item>
+    
+    <item>
+      <title>ROPEmporium: write4 32-bit</title>
+      <link>https://cavetownie.github.io/posts/write432bit/</link>
+      <pubDate>Mon, 24 May 2021 19:41:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/write432bit/</guid>
+      <description>Writeup of write four [write4] on ROPEmporium Prerequisites: Basic knowledge of assembly, disassembling tools, the previous challenges, and calling convention
+ We&amp;rsquo;re told the following: &amp;ldquo;A PLT entry for a function named print_file() exists within the challenge binary, simply call it with the name of a file you wish to read (like &amp;lsquo;flag.txt&amp;rsquo;) as the 1st argument. The &amp;lsquo;flag.txt&amp;rsquo; isn&amp;rsquo;t present in the binary&amp;rdquo;
+We need a writeable part of memory, because we need to write the string into the binary.</description>
+    </item>
+    
+    <item>
+      <title>ROPEmporium: callme 32-bit</title>
+      <link>https://cavetownie.github.io/posts/callme32bit/</link>
+      <pubDate>Mon, 24 May 2021 14:57:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/callme32bit/</guid>
+      <description>Writeup of callme [callme] on ROPEmporium Prerequisites: Basic knowledge of assembly, disassembling tools, the previous challenges, and calling convention
+ How do you make consecutive calls to a function from your ROP chain that won&amp;rsquo;t crash afterwards? If you keep using the call instructions already present in the binary your chains will eventually fail, especially when exploiting 32 bit binaries. Consider why this might be the case.
+This is the information we&amp;rsquo;re greeted with in the callme challenge.</description>
+    </item>
+    
+    <item>
+      <title>ROPEmporium: split 32-bit</title>
+      <link>https://cavetownie.github.io/posts/split32bit/</link>
+      <pubDate>Mon, 24 May 2021 14:38:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/split32bit/</guid>
+      <description>Writeup of split [split] on ROPEmporium Prerequisites: Basic knowledge of assembly, disassembling tools, and having solved ret2win for 32bit
+ Let&amp;rsquo;s start this time by checking the security settings of the binary with checksec.
+cave@noobpwn:~/binexp/ROP-emperium/split_32$ checksec split32 [*] &amp;#39;/home/cave/binexp/ROP-emperium/split_32/split32&amp;#39; Arch: i386-32-little RELRO: Partial RELRO Stack: No canary found NX: NX enabled PIE: No PIE (0x8048000) So NX is enabled, this means that we can&amp;rsquo;t just put shellcode on the stack and return to it.</description>
+    </item>
+    
+    <item>
+      <title>ROPEmporium: ret2win 32-bit</title>
+      <link>https://cavetownie.github.io/posts/ret2win32bit/</link>
+      <pubDate>Mon, 24 May 2021 14:20:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/ret2win32bit/</guid>
+      <description>Writeup of return to win [Ret2win] on ROPEmporium Prerequisites: Basic knowledge of assembly and disassembling tools
+[Note: Main difference between 32-bit and 64-bit is that the arguments are passed on the stack instead of in registers, and that the sizes of 32-bit and 64-bit addresses are in said order, 4 bytes and 8 bytes of size, reason for the sizes being that is that each byte consists of two nibbles each of which has 4 bits.</description>
+    </item>
+    
+    <item>
+      <title>cave@paintings:$ man stack &amp;&amp; man overflow</title>
+      <link>https://cavetownie.github.io/posts/basic_theory/</link>
+      <pubDate>Sun, 23 May 2021 18:03:05 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/basic_theory/</guid>
+      <description>Stack Memory is divided into three regions: Data, Text, and Stack
+In the data segment one usually finds strings or other statically created variables. In a C program, these are variables that reside outside of functions, and therefore are static.
+In the text segment one will find compiled C code turnt into machine code, machine code is called &amp;ldquo;assembly&amp;rdquo;
+The stack is a datastructure used to hold variables initialized during runtime.</description>
+    </item>
+    
+    <item>
+      <title>cave@paintings:$ whoami</title>
+      <link>https://cavetownie.github.io/posts/entry/</link>
+      <pubDate>Sat, 22 May 2021 18:09:45 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/entry/</guid>
+      <description>Cave Hi friend:)
+I&amp;rsquo;m Cave, a 19 y/o person that likes nerdy things. This site will primarily focus on my journeys with learning about said nerdy things. Herunder pwn, ctfs, crypto, engineering, hardware, and perhaps many more.
+I primarily program in Python, as many do. I&amp;rsquo;m very much a noob in every single aspect, but I enjoy learning new things, and learning at my own pace. I hope my struggles can help teach others about my mistakes.</description>
+    </item>
+    
+  </channel>
+</rss>

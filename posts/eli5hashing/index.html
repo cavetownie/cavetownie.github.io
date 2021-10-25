@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>ELI5 Password Hashing | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/eli5hashing/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>ELI5 Password Hashing</h1>
+    <time datetime="2021-08-09T19:16:45&#43;02:00">August 09, 2021</time>
+  </header>
+  <h1 id="short-history-of-cryptography">Short history of cryptography</h1>
+<p>Since the dawn of time, communication has been one of the largest parts of society. When leading wars, on foreign fronts, or planning to overthrow governments it was often important to have means of communication, that couldn&rsquo;t be read by the enemy. This lead to cryptography, where ciphers were made based on some sort of preposition, and should be able to be decrypted, so that only the proper recipients could read the messages. For example the caesar shift, which is a cryptography based on shifting the alphabet a certain rows to the right, eg. A -&gt; B, and B -&gt; C. This would have a key of 1, as the letters were shifted one to the right. A large part of cryptography is the fact that messages are able to be recovered again, so back in the day without computers they couldn&rsquo;t be too advanced, as that would be extremely taxing to revert.</p>
+<h1 id="passwords-and-cryptography">Passwords and cryptography</h1>
+<p>Now with passwords, it&rsquo;s usually said that we don&rsquo;t actually want to recover these, because what would happen if a hacker or something of that sort got a list of passwords, and was then able to recover all the original passwords, no matter what the password was? That would be catastrophical. Let&rsquo;s imagine that we encrypt the password &ldquo;puppy1234&rdquo; with a caesar cipher, and a key of 2: &ldquo;nsnnw1234&rdquo; [alphabet without numbers]. We find this on a server, and we know it&rsquo;s caesar cipher, then we can revert it back within seconds. Not good.</p>
+<p>Thus &ldquo;hashing&rdquo; came to be.</p>
+<h1 id="hashing">Hashing</h1>
+<p>Now the ELI5 begins.</p>
+<p>Imagine you have a bunch of ingredients: berries, bananas, bread, ice cubes, milk, protein powder (gains lol), and so on. Now these would constitute a password, so a password could be:<!-- raw HTML omitted -->berries+bananas.</p>
+<p>You can store this on the server, but if someone gets access to the server, then they would know what your password is, they can see that it&rsquo;s berries and bananas! Instead you could blend the berries and bananas into a smoothie, and store this on the server. Now if someone came in, all they would see is a smoothie, and they wouldn&rsquo;t be able to turn that back into the original ingredients, ever. This is the process of hashing. You have a password, which you turn into a hash, and this cannot be &ldquo;decrypted&rdquo;, &ldquo;dehashed&rdquo;, etc.</p>
+<p><img src="https://cavetownie.github.io/pictures/hashing.avif" alt="Hashing"></p>
+<p>So instead of a service comparing whether or not the password you gave matches the password in the database, the service takes your password, calculates a hash, and compares that to the hash stored in the database.</p>
+<h1 id="weakness">Weakness</h1>
+<p>Now imagine a person, let&rsquo;s call the person bob, that doesn&rsquo;t understand how hashing works. They wanted to make a password smoothie, and for simplicity sake, they just use a banana. The server got breached, and an evil person now has all the smoothies! The person would easily be able to find bobs password, because he could just make a ton of simple smoothies: watermelon, banana, apple, generally single ingredient smoothies, and compare how it tasted and looked to bobs password.</p>
+<p>This is why it&rsquo;s often said that you need to have an advanced password.</p>
+<p>The attack of this sort would be called a &ldquo;dictionary attack&rdquo;. In real world scenarios, the password would be text, and an example of a poor password could be &ldquo;god&rdquo;. The word &ldquo;god&rdquo; is in the dictionary, so when it&rsquo;s turnt into a &ldquo;smoothie&rdquo; or rather, has been hashed, one could just try to hash all the words in a dictionary and compare the result to the result of the &ldquo;god&rdquo; hash. Now this would be very taxing to do manually, but today with modern computing, can be done in a matter of seconds, and voila! Bob&rsquo;s your uncle, and you now have your uncles password.</p>
+<h1 id="takeaway-damn-i-would-kill-for-some-takeaway-right-now">Takeaway [damn i would kill for some takeaway right now]</h1>
+<p>Use advanced passwords, try not to use words from dictionaries directly, unless you&rsquo;re going to combine a fair few like:</p>
+<p>zoobiologypeppermintschnaps</p>
+<p>Now that&rsquo;s easy to remember, and not easy to crack with a dictionary attack, because it&rsquo;s taxing for computers to search for a hash combined with that amount of words.</p>
+<p>Another good password could be:
+ilikepie314159a100%</p>
+<p>&ldquo;I like pie a 100%&rdquo;, this password includes an alphanumeric character &ldquo;%&rdquo;, numbers, and a few words, and is also pretty easy to remember.</p>
+
+</article>
+
+
+
+</html>
