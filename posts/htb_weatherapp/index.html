@@ -116,7 +116,7 @@ GET /?lol=
 to register (urlencoded) with a payload, and then ends with a GET to a non-existent url just to escape the rest of the
 url, used originally in the API weather request.</p>
 <h1 id="making-it-work">Making it work?</h1>
-<p>Now a quick google search for <code>node js 8 SSRF</code> yields the following url:
+<p>Now a quick google search for node js 8 SSRF yields the following url:
 <a href="https://www.rfk.id.au/blog/entry/security-bugs-ssrf-via-request-splitting/">https://www.rfk.id.au/blog/entry/security-bugs-ssrf-via-request-splitting/</a>
 I highly recommend going and having a quick read. TLDR:
 Unicode Node, weird, bad, allows for SSRF. I found that he had written a little
@@ -131,17 +131,15 @@ script for turning the string into correct unicode:</p>
     <span style="color:#a6e22e">output</span> <span style="color:#f92672">+=</span> String.<span style="color:#a6e22e">fromCharCode</span>(<span style="color:#a6e22e">c</span>)
   }
   <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">output</span>
-}<span style="color:#e6db74">```
-</span><span style="color:#e6db74">
-</span><span style="color:#e6db74">We made this into python:
-</span><span style="color:#e6db74">```</span><span style="color:#a6e22e">python</span>
-<span style="color:#a6e22e">def</span> <span style="color:#a6e22e">smuggle</span>(<span style="color:#a6e22e">req</span>)<span style="color:#f92672">:</span>
-    <span style="color:#a6e22e">output</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
-    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span>
-        <span style="color:#a6e22e">c</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ord</span>(<span style="color:#a6e22e">i</span>)
-        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0x21</span> <span style="color:#a6e22e">or</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x7f</span><span style="color:#f92672">:</span>
-            <span style="color:#a6e22e">c</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0100</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">c</span>
-        <span style="color:#a6e22e">output</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">chr</span>(<span style="color:#a6e22e">i</span>)
+}
+</code></pre></div><p>We made this into python:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">smuggle</span>(req):
+    output <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> data:
+        c <span style="color:#f92672">=</span> ord(i)
+        <span style="color:#66d9ef">if</span> c <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0x21</span> <span style="color:#f92672">or</span> c <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x7f</span>:
+            c <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0100</span> <span style="color:#f92672">|</span> c
+        output <span style="color:#f92672">+=</span> chr(i)
 </code></pre></div><p>Now we just need to figure out what to register, and we&rsquo;re done?</p>
 <h1 id="register-to-the-rescue">Register to the rescue</h1>
 <p>We&rsquo;ll look at the database.js, here&rsquo;s a peculiar line:</p>
