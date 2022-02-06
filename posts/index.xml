@@ -96,6 +96,16 @@ a*x+b*y = gcd(a,b) Now to find these is also an algorithmic process and as an ex
     </item>
     
     <item>
+      <title>cave@paintings:$ man gcd</title>
+      <link>https://cavetownie.github.io/posts/weaterapp/</link>
+      <pubDate>Mon, 28 Jun 2021 14:18:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/weaterapp/</guid>
+      <description>title: &amp;ldquo;HackTheBox WEB: Weather App&amp;rdquo; date: 2022-06-01T21:09:45+02:00 Introduction to the challenge Upon visiting the url provided by the challenge, we&amp;rsquo;re given a smiling man giving thumbs up. Along with the current city of our ISP and the temperature there.
+What the Web So let&amp;rsquo;s visit the site again, but inspecting the requests using Burp Suite. This should give us more of an idea, of what is going on. (We also have source, which we will look at later).</description>
+    </item>
+    
+    <item>
       <title>cave@paintings:$ man recursion</title>
       <link>https://cavetownie.github.io/posts/recursion/</link>
       <pubDate>Sun, 27 Jun 2021 21:18:00 +0200</pubDate>
