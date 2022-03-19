@@ -1,0 +1,1828 @@
+
+
+
+    
+    
+    
+
+
+
+    
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    
+
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+
+<link rel="dns-prefetch" href="//www.googleapis.com">
+<link rel="dns-prefetch" href="//ws.uddata.dk">
+<link rel="dns-prefetch" href="//login.emu.dk">
+
+<meta name="google" content="notranslate">
+
+<link rel="apple-touch-icon" sizes="180x180" href="/shared/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/shared/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/shared/favicon-16x16.png">
+<link rel="manifest" href="/shared/manifest.json" crossorigin="use-credentials">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+
+<!-- styles -->
+<link href="/shared/assets/css/bootstrap.min.css" rel="stylesheet">
+<link href="/shared/assets/css/styles.css" rel="stylesheet">
+<link href="/shared/assets/css/fonts.min.css" rel="stylesheet">
+
+<!-- ie crap -->
+<!--[if IE 7]>
+<link rel="stylesheet" href="/shared/assets/css/font-awesome-ie7.min.css" />
+<![endif]-->
+
+<!--[if lte IE 8]>
+<link rel="stylesheet" href="/shared/assets/css/ace-ie.min.css" />
+<![endif]-->
+
+<!--[if !IE]> -->
+<script src="/shared/assets/js/standard.js"></script>
+<!-- <![endif]-->
+
+<!--[if IE]>
+<script src="/shared/assets/js/standard.js?ie=true"></script>
+<![endif]-->
+    <meta http-equiv="content-language" content="en">
+    <meta name="gwt:property" content="locale=en">
+    <meta name="robots" content="noindex">
+
+    
+    <meta name="SKYPE_TOOLBAR" content="SKYPE_TOOLBAR_PARSER_COMPATIBLE"/>
+    <meta name="format-detection" content="telephone=no"/>
+
+    <title>Login management</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        body {
+            -ms-touch-action: manipulation;
+            touch-action: manipulation;
+            background-color: #e4e6e9;
+        }
+
+        .copyright {
+            position: fixed;
+            bottom: 25px;
+            width: 189px;
+            text-align: center;
+            z-index: -1;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 3px;
+        }
+
+        #language {
+            position: fixed;
+            height: 22px;
+            width: 189px;
+            bottom: 4px;
+            text-align: center;
+            background-color: #f2f2f2;
+        }
+
+        #wrapper {
+            position: relative;
+            margin: 0 auto;
+            min-width: 1024px;
+            min-height: 100%;
+            height: auto !important;
+            background-color: #fff;
+        }
+
+        body:before {
+            content: none;
+        }
+
+        #menufarve {
+            position: absolute;
+            width: 100%;
+            height: 45px;
+            background-color: rgb(67, 142, 185);
+        }
+
+        .sidebar {
+            height: 100%;
+        }
+
+        .page-content {
+            display: flow-root;
+        }
+
+        #wrapper.large {
+            max-width: 80000px; /* put large på wrapper hvis der behøves meget plads!*/
+        }
+
+        .menu-min .copyright {
+            display: none;
+        }
+
+        .menu-min #language {
+            display: none;
+        }
+
+    </style>
+
+    <script>
+      ace.data = new ace.data_storage(1);
+
+      // Resize når en bruger printer for at få genberegnet skema brikker og andre elementer
+      const beforePrint = () => window.dispatchEvent(new Event('resize'));
+
+      // Tjek om vi kan bruge en media query (Chrome, FireFox...)
+      if (window.matchMedia) {
+        window.matchMedia('print').addEventListener("change", (mql) => {
+          if (mql.matches) {
+            beforePrint();
+          }
+        });
+      } else { // IE
+        window.onbeforeprint = beforePrint;
+      }
+    </script>
+</head>
+
+<body class="hoverable">
+
+    
+
+
+
+
+
+<script>var uddata_rettigheder = ["AktiKalender,MENU","ElevAdm,EGNE","ElevNoter,VIS","Forløbsplan,EGNE","Forløbsplan,MENU","Forløbsplan,VIS","Karakter,EGNE","Opgaver,MENU","Ressourcer,MENU","Ressourcer,RET","Ressourcer,VIS","Samtale,MENU","Samtale,VIS","Skema,EGNE","Skema,MENU","Skema,VIS","Undervisningsplan,MENU"];</script>
+<script>var uddata_bruger = {"fornavn":"Felix Anton","efternavn":"Andersson","skolenavn":"UCRS","brug_id":46983,"meda_id":0,"indi_id":9293,"rolleType":"ELEV","isSupport":false,"instnr":"760401","trim":[["MedtagAnsc","N",""],["FraversAar","4",""],["Frareg","J",""],["ansvar_omrade","",""],["FravaDageEUD","1",""],["FravaDageGym","50",""],["fravaeranmod_mail","",""],["udenlon_mail","",""],["sygemeld_mail","",""],["SYG_SKEMA_NATJOB","",""],["SYG_SKEMA_NATJOB_PERIODE","",""],["KontaktEmail","",""],["KontoSkema","",""],["LikviditetsKonti","",""],["MedaSlutDageAntal","20",""],["MedaStartDageAntal","100",""],["SynkMedaMail","N",""],["MedaStartLaast","N",""],["SynkMedaTlf","J",""],["SynkPersMail","J",""],["SynkPersTlf","J",""],["PersSlutDageAntal","30",""],["PersStartDageAntal","50",""],["TID_NATJOB","",""],["BrugGodkendelsesbillede","J",""],["TID_NATJOB_AAR","",""],["MailMesterKopi","",""],["FraverEfterUdd","J",""],["HRSygeAdvisering","",""],["SLS_indb_metode","",""],["SygemeldSkaeringsTime","",""],["DAGS_NORM","7.4",""],["MedtagSkema","J",""],["MedtagTimoak","J",""],["PERIODE_START","20140801",""],["RET_DAGE_FREM","10",""],["RET_DAGE_TILBAGE","100",""],["START_TIME_TAL","0",""],["TÆL_NORMALT_SKEMA","J",""],["VIS_NORMALT_SKEMA","J",""],["VIS_SPECIAL_SKEMA","J",""],["ElevAntalDageEfter","90",""],["ElevAntalDageFør","500",""],["MedaAntalDageEfter","",""],["MedaAntalDageFør","",""],["SkiftUniPass","N",""],["ADBrugerOprettelse","",""],["ER_AFSP_SPECIEL","",""],["SKOLE_FRIDAG_HEL","",""],["TÆL_SPECIAL_SKEMA","",""],["KanSkifteBillede","N",""],["ADGrupperDanskeTegnTilladt","",""],["MedtagAktiGrp","",""],["MedtagElevAfd","",""],["MedtagElevLokation","",""],["MedtagElevPaHold","",""],["MedtagElevUdda","",""],["MedtagKunTrekningsHold","",""],["AMU_SYNK_AKTIV","J",""],["MedtagMedaNavisionAnsvar","",""],["MedtagMedaAfd","",""],["MedtagMedaAnsvar","",""],["PrefixAktiGrp","",""],["PrefixElevAfd","",""],["PrefixElevLokation","",""],["PrefixElevPaHold","",""],["PrefixElevUdda","",""],["PrefixMedaNavisionAnsvar","",""],["PrefixMedaAfd","",""],["PrefixMedaAnsvar","",""],["Telefon_Fra_AT_Enable","",""],["Telefon_Fra_AT_Synk","",""],["Telefon_Fra_MT_Enable","",""],["Telefon_Fra_MT_Synk","",""],["Telefon_Fra_PT_Enable","",""],["Telefon_Fra_PT_Synk","",""],["UniloginForMedarbejder","N",""],["FronterDatasource","",""],["FronterHomePageUrlElev","",""],["FronterHomePageUrlMeda","",""],["FronterMailServerElev","",""],["FronterMailServerMeda","",""],["FronterMedtagAktiviteter","",""],["FronterPasswordType","",""],["FronterPersonligrumindretning","",""],["FronterProjektRumNavn","",""],["FronterRum","",""],["FronterRumIndretning","",""],["FronterStartPointBrugere","",""],["FronterStartPointSkoleElev","",""],["FronterStartPointSkoleMeda","",""],["FronterSynkronisering","",""],["FronterTarget","",""],["FronterWebRum","",""],["FronterWebRumIndretning","",""],["ELEV_TILKNYT_DAGE_EFTER","",""],["ELEV_TILKNYT_DAGE_FØR","",""],["SØG_DAGE_FREM","",""],["SØG_DAGE_TILBAGE","",""],["KortSystem","J",""],["support_sygemeld_mail","",""],["AMU_SYNK_SKÆRINGSDATO","20200629",""],["AMU_SYNK_AUTO_AFSEND","J",""],["LoengruppeIdentifikator","",""],["SKOLE_FRIDAG_HALV","",""],["FraregDageMeda","360",""],["support_anmod_mail","",""],["KarlisteSynlig","",""],["AMU_UDBUD_BRUG_KONTAKTPERSON","",""],["AMU_UDBUD_BRUG_TELEFON","",""],["AMU_UDBUD_BRUG_EMAIL","",""],["AMU_UDBUD_KONTAKTPERSON","Charlotte V. Nielsen ",""],["AMU_UDBUD_TELEFON","96801516",""],["AMU_UDBUD_EMAIL","cvn@ucrs.dk",""],["AMU_UDBUD_HJEMMESIDE","https://www.ucrs.dk",""],["ADBrugerInitMedInitialerCpr","",""],["AMU_UDBUD_LOKATION_TLF","N",""],["AMU_UDBUD_BRUG_RINGESYSTEM","J",""],["AMU_TAKSTKATALOG_MED_MOMS","N",""],["AMU_STANDARD_TILSKUD_J","N",""],["AMU_UDEN_FLEX","N",""],["AMU_UDEN_NAVISION","N",""],["AMU_AUTO_OPRET_TILSTEDEDAGE","N",""],["AMU_SOEG_STANDARD_MDR","24",""],["ADUndtagUddannelser","",""],["HistoriskAnmod","J",""],["MaxFerieUndeskud","",""],["TIMESEDDELSTARTDATO","",""],["KOLLEGAFRAVOVERSIGT_TILBAGE","",""],["KOLLEGAFRAVOVERSIGT_FREM","",""],["SLS_indb_start","",""],["SLS_NY_indb_start","",""],["SLS_indb_max","",""]]};</script>
+<script>
+  String.prototype.endsWith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+  };
+
+
+  //hjælpefunktioner
+  var uddata_activ_menu = function(id) {
+    $("#sidebar .nav.nav-list").find('li').removeClass("active open");
+    $("#sidebar .nav.nav-list").find('ul').css("display", "none");
+    $("#" + id).parents('ul[class="submenu"]').css("display", "block");
+    $("#" + id).parents('li').addClass("active open");
+    $("#" + id).parent('li').removeClass("open");
+  };
+
+  var isSpecialVersion = window.location.hostname === 'beta.uddataplus.dk' || window.location.hostname === 'optagelse.uddataplus.dk';
+  var isSandbox = window.location.hostname === 'sts.uddataplus.dk';
+
+  var versionLabel = 'NY VERSION';
+  var sandboxLabel = 'Sandkasse';
+  var versionMsg = 'Dette er den nye version af Studie+';
+  var sandboxMsg = 'DU ER I EN SANDKASSE';
+
+  var ua = window.navigator.userAgent;
+  var msie = ua.indexOf("MSIE");
+
+  $(document).ready(function() {
+    if (msie > 0) {
+      $("#footer").addClass("ie");
+    }
+
+    if (document.cookie.indexOf('cok') === -1) {
+      $("#cookieMessage").show();
+    }
+  });
+
+  var setCOK = function() {
+    const now = new Date();
+    const year_in_millis = 365 * 24 * 3600 * 1000;
+    const year = new Date(now.getTime() + year_in_millis);
+    let c = "cok=1";
+    c += ";expires=" + year.toGMTString();
+    c += ';path=/';
+    /*if xyz.name.dk => .name.dk */
+    const regExp = /\w*(\.\w*\.dk)/g;
+    const match = regExp.exec(window.location.hostname);
+    if (match !== null) {
+      c += ';domain=' + match[1];
+    }
+
+    document.cookie = c;
+    $("#cookieMessage").hide();
+  };
+
+
+</script>
+<div class="alert alert-warning dark" style="z-index: 10000; margin-bottom: 0; position: fixed; display:none; bottom: 0; right: 0; border: 1px solid rgba(0,0,0,0.2);" id="cookieMessage">
+    <strong>
+        <i class="icon-comments icon-large"></i>
+        This site uses cookies and by using the site you are consenting to this
+        &nbsp;<a href='https://info.uddataplus.dk/cookie-information/' target='_blank'> (se mere)</a>
+        &nbsp;<a class="btn btn-mini btn-inverse square-btn" style="margin-left:1rem;" href='javascript:setCOK();'>OK</a>
+    </strong>
+</div>
+<!--[if lte IE 9]>
+<div class="alert alert-error" style="z-index: 10000; margin-bottom: 0; position: relative">
+<strong>
+<i class="icon-warning-sign icon-large"></i>
+Your browser is not supported. Upgrade or switch to 
+<a href="http://www.google.com/intl/da/chrome/">chrome</a>.
+</strong>
+</div>
+<![endif]-->
+
+<div class="alert alert-warning center-align" style="position:relative; z-index: 21; margin: 0 auto; float: none; padding: 1rem 0;" id="specialVersionMsg" hidden>
+    <div class="centered text-center bolder dark">
+        <span id="specialVersionMsgContent"></span>
+        <a class="btn btn-small btn-inverse square-btn" style="margin-left: 0.5rem;" href='javascript:setSandboxOK();'>Forstået</a>
+    </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    if (isSpecialVersion && document.cookie.indexOf('sandboxok') === -1) {
+      $("#specialVersionMsg").show();
+      document.getElementById('specialVersionMsgContent').innerText = versionMsg;
+    } else if (isSandbox && document.cookie.indexOf('sandboxok') === -1) {
+      $("#specialVersionMsg").show();
+      document.getElementById('specialVersionMsgContent').innerText = sandboxMsg;
+    }
+
+    const maintenanceFeed = document.getElementById("maintenanceFeed");
+    
+    
+  });
+
+
+  var setSandboxOK = function() {
+    const now = new Date();
+    const day_in_millis = 24 * 3600 * 1000;
+    const day = new Date(now.getTime() + day_in_millis);
+    let c = "sandboxok=1";
+    c += ";expires=" + day.toGMTString();
+    c += ';path=/';
+    /*if xyz.name.dk => .name.dk */
+    const regExp = /\w*(\.\w*\.dk)/g;
+    const match = regExp.exec(window.location.hostname);
+    if (match !== null) {
+      c += ';domain=' + match[1];
+    }
+
+    document.cookie = c;
+    $("#specialVersionMsg").hide();
+  };
+</script>
+
+<div id="wrapper">
+    
+        <div id="menufarve"></div>
+        <div class="navbar" id="navbar">
+            <div class="navbar-inner" style="z-index: 1000;">
+                <div style="padding-left: 10px;">
+
+                    <a href="/" class="brand">
+                        <img src="/shared/logo.svg" alt="Logo" style="margin-bottom: -4px; margin-top: -5px; margin-left: 12px; height: 30px; width: 148px;"/>
+                    </a>
+
+                    <ul id="specialVersionLabel" class="nav ace-nav pull-left" style="border-left: 1px solid white; border-right: 1px solid white;">
+                        <li class="dark-opaque" style="padding: 0 1rem;">
+                            <a class="dark-blue open">
+                                <span id="specialVersionLabelContent" class="bigger-120 bolder"></span>
+                            </a>
+                        </li>
+                    </ul>
+
+
+                    <script>
+                      function checkBrugerInfo() {
+                        $.ajax({
+                          url: "/services/rest/samtaler/harBrugerEmailOgTelefon"
+                        }).then(function(data) {
+                          // Hvis brugeren ikke har indtastet sine kontakt info gør vi det synligt
+                          if (!data) {
+                            const samtaleCounter = $('#samtaleCounter');
+                            samtaleCounter.text("!");
+                            $('#samtaleCounterUrl').prop("href", "/brugerprofil/");
+                            const samtaleCounterParent = $('#samtaleCounterParent');
+                            samtaleCounterParent.removeClass('light-blue').addClass('red');
+                            samtaleCounter.addClass('badge-important');
+                            samtaleCounterParent.prop("title", "You need to fill in your contact information");
+                          } else {
+                            if (typeof checkSamtaler === "function")
+                              checkSamtaler();
+                          }
+                        });
+                      }
+
+                      $(document).ready(function() {
+                          // Load handler-scripts op før phoenix.js
+                          const chain = [];
+                          chain.push($.getScript('/shared/assets/js/bootstrap-notify.min.js'));
+                          chain.push($.getScript('/shared/assets/js/driftbeskeder_min.js', function() {
+                            tjekAktivDriftbesked()
+                          }));
+                          if (true) {
+                            chain.push($.getScript('/shared/assets/js/samtaler_min.js').done(checkBrugerInfo()));
+                          }
+                          chain.push($.getScript('/shared/assets/js/phoenix_min.js'));
+                          $.when.apply($, chain);
+
+                          if (isSpecialVersion) {
+                            document.getElementById('specialVersionLabelContent').innerText = versionLabel
+                          } else if (isSandbox) {
+                            document.getElementById('specialVersionLabelContent').innerText = sandboxLabel
+                          } else {
+                            $("#specialVersionLabel").hide();
+                          }
+                        }
+                      );
+                    </script>
+                    <ul class="nav ace-nav pull-right">
+                        
+                            
+                                <li class="light-blue open" id="samtaleCounterParent">
+                                    <a href="/besked/#samtale:" id="samtaleCounterUrl">
+                                        <i class="icon-comments-alt"></i>
+                                        <span class="badge" id="samtaleCounter"></span>
+                                    </a>
+                                </li>
+                            
+                            <li class="dark-opaque">
+                                <a class="dark-blue open">
+                                    <span class="bigger-170">UCRS</span>
+                                </a>
+                            </li>
+                        
+                        
+                            <li class="light-blue" style="display: flex">
+
+                                <div class="round">
+                                    <img src="/shared/brugerfoto?type=MINI&indi_id=9293" alt="Profile"/>
+                                </div>
+                                <a data-toggle="dropdown" href="#" class="dropdown-toggle" style="display: flex">
+                                    <span class="user-info" style="margin-left: 10px; max-width: 200px;">
+                                    <small>Welcome,</small>
+                                    Felix
+                                </span>
+                                    <i class="icon-caret-down brugermenuicon" style="display: inline"></i>
+                                </a>
+
+                                <ul class="user-menu pull-right dropdown-menu dropdown-yellow dropdown-caret dropdown-closer">
+                                    <li>
+                                        <a href="/mobil">
+                                            <i class="icon-mobile-phone"></i>
+                                                Mobile view
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="http://istdk.infocaption.com" target="_blank">
+                                            <i class="icon-info icon-large"></i>
+                                                Guides
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/brugerprofil/">
+                                            <i class="icon-user"></i>
+                                                Profile
+                                        </a>
+                                    </li>
+                                    
+
+                                    <li>
+                                        <a href="/login/management">
+                                            <i class="icon-wrench"></i>
+                                                Login management
+                                        </a>
+                                    </li>
+
+                                    <li class="divider"></li>
+                                    <li>
+                                        <a href="/login/doLogout">
+                                            <i class="icon-off"></i>
+                                                Logout
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    
+
+    <!-- side menu herfra! -->
+    <div class="main-container">
+        <div id="errorNoCookies" class="alert alert-danger" style="display:none"><strong>Du skal slå cookies til før Studie+ vil virke!</strong></div>
+
+        
+
+    
+        <a class="menu-toggler" id="menu-toggler" href="#">
+            <span class="menu-text"></span>
+        </a>
+
+        <div class="sidebar" id="sidebar" style="z-index: 20;">
+            <ul class="nav nav-list">
+                <li><a id='id_menu_start' href='/?id=id_menu_start' ontouchend='javascript:uddata_activ_menu("id_menu_start");' ><i class='icon-dashboard'></i> <span class='menu-text'>Start</span></a></li><li><a id='id_menu_om_mig' href='/?id=id_menu_om_mig#menu_om_mig:' ontouchend='javascript:uddata_activ_menu("id_menu_om_mig");' ><i class='icon-user'></i> <span title='' class='menu-text'>About me</span></a></li><li><a id='id_menu_kalender' href='/besked/?id=id_menu_kalender#menu_kalender:' ontouchend='javascript:uddata_activ_menu("id_menu_kalender");' ><i class='icon-eye-open'></i> <span title='' class='menu-text'>Activity calendar</span></a></li><li><a id='id_menu_samtaler' href='/besked/?id=id_menu_samtaler#menu_samtaler:' ontouchend='javascript:uddata_activ_menu("id_menu_samtaler");' ><i class='icon-comments-alt'></i> <span title='' class='menu-text'>Conversations</span></a></li><li><a id='id_menu_forloebsplaner' href='/besked/?id=id_menu_forloebsplaner#react:fgu' ontouchend='javascript:uddata_activ_menu("id_menu_forloebsplaner");' ><i class='icon-bullseye'></i> <span title='' class='menu-text'>Progress Plans</span></a></li><li><a id='id_menu_skema' href='/skema/?id=id_menu_skema#menu_skema:' ontouchend='javascript:uddata_activ_menu("id_menu_skema");' ><i class='icon-calendar'></i> <span title='' class='menu-text'>Schedule</span></a></li><li><a id='id_menu_opgaver' href='/opgave/?id=id_menu_opgaver#menu_opgaver:' ontouchend='javascript:uddata_activ_menu("id_menu_opgaver");' ><i class='icon-pencil'></i> <span title='' class='menu-text'>Assignments</span></a></li><li><a id='id_menu_ress' href='/ressourcer/?id=id_menu_ress#menu_ress:' ontouchend='javascript:uddata_activ_menu("id_menu_ress");' ><i class='icon-folder-open'></i> <span title='' class='menu-text'>Ressources</span></a></li><li><a id='id_menu_undervis' href='/undervisningsplan/?id=id_menu_undervis#menu_undervis:' ontouchend='javascript:uddata_activ_menu("id_menu_undervis");' ><i class='icon-tasks'></i> <span title='' class='menu-text'>Education plan</span></a></li>
+            </ul><!-- /.nav-list -->
+            <div class="sidebar-collapse" id="sidebar-collapse" onclick="if (typeof (window.gwtevent) == 'object') window.gwtevent.fire('collapse',0);">
+                <i class="icon-double-angle-left" data-icon1="icon-double-angle-left" data-icon2="icon-double-angle-right"></i>
+            </div>
+
+            <script type="text/javascript">
+              try {
+                ace.settings.check('sidebar', 'collapsed');
+              } catch (e) {
+              }
+            </script>
+
+            <div class="copyright">
+                <a href="https://www.ist.dk" target="_blank">
+                    IST &copy; 1989-2022
+                </a>
+            </div>
+
+            <script>
+              //change lang cookie
+              function changeLanguage(lang) {
+                const now = new Date();
+                const year_in_millis = 365 * 24 * 3600 * 1000;
+                const year = new Date(now.getTime() + year_in_millis);
+                let c = "lang=" + lang;
+                c += ";expires=" + year.toGMTString();
+                c += ';path=/';
+                document.cookie = c;
+
+                window.location.reload();
+              }
+            </script>
+            
+            
+                <div id="language">
+                    <a href="javascript:changeLanguage('da')" style="color: #393939; text-decoration: underline;">Dansk</a> | English
+                </div>
+            
+
+        </div>
+
+        <div class="main-content" id="main-content">
+            
+                <noscript>Du skal slå Javascript til for at kunne bruge siden!</noscript>
+                
+                
+                    
+                    
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="page-content">
+    <div class="page-header">
+        <h1>Login management
+            <small>&raquo; Felix Anton Andersson - <span style="text-transform: capitalize">elev</span>
+            </small>
+        </h1>
+    </div>
+
+    
+
+    
+
+    <h3 class="header smaller lighter">
+        Change the password for the app
+        <small>&raquo&nbsp;Note that it is only the code of the app you are changing - not your UNI•Login</small>
+    </h3>
+    
+    <form class="form-horizontal" method="POST" action="api/management/changePassword" onsubmit="return changePassword(this);">
+        <input type="text" name="username" value="feli0556" style="display:none"/>
+        <div class="control-group">
+            <label class="control-label">
+                Temporary / current password
+            </label>
+            <div class="controls">
+                <input type="password" spellcheck="false" name="oldPassword" id="oldPassword" placeholder="temporary / current password"/>
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label">
+                New password
+            </label>
+            <div class="controls">
+                <input type="password" spellcheck="false" name="newPassword" id="newPassword" placeholder="new password" onKeyup="validateStrength(this)"/>
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label"></label>
+            <div class="controls">
+                <div id="pgbar" class="progress progress-danger" style="height: 10px; width: 220px; margin-bottom: 0px;">
+                    <div class="bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label"></label>
+            <div class="controls">
+                <button type="btn-append submit" class="btn btn-mini" id="skiftKodeordBtn" disabled="disabled">
+                    Change password
+                </button>
+                <a href="resetPassword" style="vertical-align: middle">
+                    Forgot password
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <h3 class="header smaller lighter">
+        Email for password retrieval
+    </h3>
+    <form class="form-horizontal" onsubmit="return updateEmail();">
+        <div class="control-group">
+            <label class="control-label">Email</label>
+            <div class="controls">
+                <input type="email" class="form-control" id="email" onkeyup="opdaterKnap()" value="fxcave@protonmail.com">
+                <button type="submit" class="btn btn-mini" id="opdaterEmailBtn">
+                    Saved
+                </button>
+            </div>
+        </div>
+    </form>
+
+    
+
+    <h3 class="header smaller lighter">
+        Your login options
+    </h3>
+    <table class="table table-bordered table-hover table-condensed dataTable">
+        <tr class="thead">
+            <td width="90px">Logintype</td>
+            <td width="90px">Login</td>
+            <td width="60px"></td>
+            <td>
+                Remember me keys
+            </td>
+        </tr>
+        
+        <tr>
+            <td>unilogin
+            </td>
+            <td>feli0556
+            </td>
+            <td>
+                <button class="btn btn-minier" onclick="toggleLoginType(906, 'unilogin', true, 2)">
+                    
+                        
+                        Deactivate
+                    
+                </button>
+            </td>
+            <td>
+            </td>
+        </tr>
+        
+        <tr>
+            <td>direkte
+            </td>
+            <td>feli0556
+            </td>
+            <td>
+                <button class="btn btn-minier" onclick="toggleLoginType(11649, 'direkte', true, 2)">
+                    
+                        
+                        Deactivate
+                    
+                </button>
+            </td>
+            <td>
+            </td>
+        </tr>
+        
+    </table>
+
+    <h3 class="header smaller lighter">
+        Your latest sessions
+    </h3>
+    <table class="table table-bordered table-hover table-condensed dataTable">
+        <tr class="thead">
+            <td width="150px">ID</td>
+            <td width="90px">Login</td>
+            <td width="90px">Logintype</td>
+            <td width="150px">IP</td>
+            <td>
+                Login time
+            </td>
+            <td width="60px"></td>
+        </tr>
+        
+        <tr>
+            <td>1236564
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:128.76.153.63
+            </td>
+            <td>Sat Mar 19 17:06:29 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236564, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236563
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:128.76.153.63
+            </td>
+            <td>Sat Mar 19 17:02:11 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236563, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236561
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:128.76.153.63
+            </td>
+            <td>Sat Mar 19 16:57:37 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236561, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236547
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:128.76.153.63
+            </td>
+            <td>Sat Mar 19 16:11:38 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236547, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236527
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:128.76.153.63
+            </td>
+            <td>Sat Mar 19 15:37:32 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236527, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236512
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:128.76.153.63
+            </td>
+            <td>Sat Mar 19 15:01:46 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236512, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236175
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:217.116.228.11
+            </td>
+            <td>Fri Mar 18 18:00:32 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236175, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236174
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:217.116.228.11
+            </td>
+            <td>Fri Mar 18 17:56:53 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236174, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236166
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:217.116.228.11
+            </td>
+            <td>Fri Mar 18 17:46:55 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236166, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236164
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:217.116.228.11
+            </td>
+            <td>Fri Mar 18 17:43:28 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236164, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236158
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:217.116.228.11
+            </td>
+            <td>Fri Mar 18 17:33:33 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236158, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236113
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:77.241.136.94
+            </td>
+            <td>Fri Mar 18 16:22:33 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236113, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1236108
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:4605:d56a:18b:e957:35d4:d4bd
+            </td>
+            <td>Fri Mar 18 16:13:50 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1236108, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1235658
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Fri Mar 18 11:04:21 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1235658, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1233245
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:4006:fda2:f5b1:c5b:1042:6869
+            </td>
+            <td>Thu Mar 17 13:42:30 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1233245, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1232793
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:4007:2827:bd2a:8593:a377:4a56
+            </td>
+            <td>Thu Mar 17 10:36:48 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1232793, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1232171
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Thu Mar 17 08:08:15 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1232171, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1231257
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.11
+            </td>
+            <td>Wed Mar 16 22:18:14 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1231257, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1228494
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.11
+            </td>
+            <td>Tue Mar 15 19:24:23 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1228494, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1225266
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Mon Mar 14 13:56:47 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1225266, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1224497
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:4606:99f5:fdca:189f:2840:26df
+            </td>
+            <td>Mon Mar 14 10:17:56 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1224497, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1223230
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.11
+            </td>
+            <td>Sun Mar 13 22:20:42 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1223230, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1220556
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.11
+            </td>
+            <td>Fri Mar 11 09:20:55 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1220556, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1219377
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.11
+            </td>
+            <td>Thu Mar 10 22:08:49 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1219377, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1218205
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:400b:c851:2b90:3bb2:1ed3:25d2
+            </td>
+            <td>Thu Mar 10 10:43:16 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1218205, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1218031
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Thu Mar 10 10:09:04 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1218031, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1214776
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Wed Mar 09 09:12:54 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1214776, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1213869
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Wed Mar 09 00:06:23 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1213869, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1213749
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:460d:295e:4c60:f025:387b:181d
+            </td>
+            <td>Tue Mar 08 22:29:16 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1213749, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1212799
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:400b:3ae:4a46:2ee3:b2ab:cdcc
+            </td>
+            <td>Tue Mar 08 13:46:17 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1212799, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1211948
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Tue Mar 08 09:25:53 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1211948, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1211670
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Tue Mar 08 08:35:14 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1211670, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1209044
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Mon Mar 07 09:17:51 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1209044, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1208685
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Mon Mar 07 08:15:08 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1208685, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1206755
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:62.198.142.58
+            </td>
+            <td>Sat Mar 05 20:09:20 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1206755, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1203350
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Thu Mar 03 13:08:32 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1203350, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1202876
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Thu Mar 03 10:29:47 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1202876, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1201878
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Thu Mar 03 07:51:50 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1201878, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1196687
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:4009:faeb:1549:7f58:6989:72d1
+            </td>
+            <td>Tue Mar 01 09:32:00 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1196687, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1195086
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Mon Feb 28 21:10:29 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1195086, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1195076
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Mon Feb 28 21:06:34 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1195076, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1194857
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Mon Feb 28 17:51:30 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1194857, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1191960
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Sun Feb 27 19:59:24 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1191960, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1190751
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>2a02:aa7:4004:bde0:51fa:7692:1376:cd3d
+            </td>
+            <td>Sat Feb 26 16:03:10 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1190751, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1189563
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Fri Feb 25 11:35:59 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1189563, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1189490
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Fri Feb 25 11:28:30 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1189490, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1183302
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Wed Feb 23 08:20:01 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1183302, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1183225
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Wed Feb 23 08:11:16 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1183225, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1181826
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:185.125.223.92
+            </td>
+            <td>Tue Feb 22 14:53:38 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1181826, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+        <tr>
+            <td>1179052
+            </td>
+            <td>feli0556
+            </td>
+            <td>unilogin
+            </td>
+            <td>::ffff:91.236.210.135
+            </td>
+            <td>Mon Feb 21 14:04:33 CET 2022
+            </td>
+            <td>
+                
+                <button class="btn btn-minier" onclick="killSession(1179052, this)">
+                    Delete
+                </button>
+                
+            </td>
+        </tr>
+        
+    </table>
+
+    <script>
+      var killSession = function(sess_id, element) {
+        $.ajax({
+          type: "POST",
+          url: 'api/management/kill',
+          data: "sess_id=" + sess_id
+        }).done(function() {
+          var td = element.parentNode;
+          var tr = td.parentNode;
+          var table = tr.parentNode;
+          table.removeChild(tr);
+        }).fail(function() {
+          alert("Kunne ikke slette sessionen");
+        });
+      }
+    </script>
+
+    <script>
+      var toggleLoginType = function(brlo_id, loginType, aktivt, antalAktive) {
+        var message = "Hvis du deaktiverer ";
+        if (loginType == "unilogin") {
+          message += "Unilogin, vil du ikke længere kunne logge på Studie+ ";
+          if (antalAktive > 1)
+            message += "vha. dit Unilogin";
+        }
+        if (loginType == "direkte") {
+          message += "Direkte login, vil du ";
+          if (antalAktive > 1) {
+            message += "ikke længere kunne logge på APP'en og kun på Studie+ vha dit Unilogin";
+          } else {
+            message += "hverken kunne logge på APP'en eller på Studie+";
+          }
+        }
+        if (!aktivt || confirm(message)) {
+          $.ajax({
+            type: "POST",
+            url: 'api/management/toggleLoginType',
+            data: "brlo_id=" + brlo_id
+          }).done(function() {
+            window.location.reload();
+          }).fail(function() {
+            alert("Fejl ved slet");
+          });
+        }
+      };
+
+      var removeHuskMig = function(brlo_id, blhm_id, element) {
+        console.log("Remove huskmig: " + brlo_id + ", " + blhm_id);
+        $.ajax({
+          type: "POST",
+          url: 'api/management/fjernHuskMig',
+          data: jQuery.param({ brlo_id: brlo_id, blhm_id: blhm_id })
+        });
+
+        element.parentNode.removeChild(element);
+      };
+
+      var verifiedEmail = "fxcave@protonmail.com";
+
+      var opdaterKnap = function(event) {
+        var opdBtn = $("#opdaterEmailBtn");
+        var email = $("#email").val();
+        if (email !== verifiedEmail) {
+          opdBtn.text("Opdater");
+        } else {
+          opdBtn.text("Gemt");
+        }
+      };
+
+      var updateEmail = function() {
+        var email = $("#email").val();
+        var opdBtn = $("#opdaterEmailBtn");
+        opdBtn.attr('disabled', 'disabled');
+        opdBtn.text("Gemmer");
+
+        $.get('api/management/updateEmail', { email: email },
+          function(result) {
+            if (result !== true) {
+              window.location.reload();
+            } else {
+              verifiedEmail = email;
+              opdBtn.text("Gemt");
+              opdBtn.removeAttr('disabled');
+            }
+          }).fail(function() {
+          alert('Kunne ikke opdatere din email');
+          $("opdaterEmailBtn").attr('disabled', 'disabled');
+
+          return false;
+        })
+      };
+
+      var opretDirekteLogin = function() {
+        var email = $("#opretemail").val();
+
+        $.get('api/management/createDirekteLogin', { email: email },
+          function(result) {
+            if (result !== true) {
+              $("#createDirekteLoginForm").append("<div class='alert alert-error'><button type='button' class='close' data-dismiss='alert'>&times;</button> Kunne ikke oprette direkte login. Tjek at emailadresse er korrekt!</div>");
+            } else {
+              $("#createDirekteLoginForm").html("<div class='alert alert-success'> En bekræftelses email er blevet sendt.</div>");
+              setTimeout(location.reload.bind(location), 3000);
+            }
+          }).fail(function() {
+          $("#createDirekteLoginForm").html("<div class='alert alert-error'>Fejl ved kald af service!</div>")
+        });
+
+        return false;
+      };
+
+      var validateStrength = function(element) {
+        var btn = $("#skiftKodeordBtn");
+
+        $.post
+        (
+          'api/management/passwordPct',
+          { 'password': $(element).val() },
+          function(strength) {
+            $("#pgbar").removeClass("progress-danger");
+            $("#pgbar").removeClass("progress-warning");
+            $("#pgbar").removeClass("progress-success");
+
+            if (strength < 80.0) {
+              $("#pgbar").addClass("progress-danger");
+              btn.attr("disabled", "disabled");
+            } else {
+              $("#pgbar").addClass("progress-success");
+              btn.removeAttr("disabled");
+            }
+
+            $("#pgbar .bar").css("width", strength + '%');
+          }
+        );
+      };
+
+      var changePassword = function(form) {
+        var oldPass = $("#oldPassword").val();
+        var newPass = $("#newPassword").val();
+
+        if (oldPass.length === 0)
+          return false;
+
+        $.post
+        (
+          'api/management/passwordPct',
+          { password: newPass },
+          function(strength) {
+            if (strength >= 80.0) {
+              $.post
+              (
+                'api/management/changePassword',
+                { oldPassword: oldPass, newPassword: newPass, username: $("#username").val() },
+                function(result) {
+                  console.log('changed:' + result);
+
+                  if (result) {
+                    $("#kodeskiftbesked").hide();
+                    $(form).html("<div class='alert alert-success'>Dit kodeord er skiftet!</div>");
+                  } else {
+                    $("#oldPassword").parent().parent().addClass("error");
+                    $("#oldPassword").val("");
+                    $("#oldPassword").focus();
+                  }
+                });
+            }
+          }
+        );
+
+        return false;
+      }
+    </script>
+</div>
+
+                    
+                
+            
+            
+        </div>
+    
+</div>
+
+</body>
+</html>
+
