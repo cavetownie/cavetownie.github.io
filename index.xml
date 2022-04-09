@@ -6,7 +6,17 @@
     <description>Recent content on </description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 06 Feb 2022 21:09:45 +0200</lastBuildDate><atom:link href="https://cavetownie.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 09 Apr 2022 22:00:00 +0200</lastBuildDate><atom:link href="https://cavetownie.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>DDC2022: Writeups</title>
+      <link>https://cavetownie.github.io/posts/ddc2022writeups/</link>
+      <pubDate>Sat, 09 Apr 2022 22:00:00 +0200</pubDate>
+      
+      <guid>https://cavetownie.github.io/posts/ddc2022writeups/</guid>
+      <description>Permutation - Cryptography I kryptoopgaven &amp;ldquo;Permutation&amp;rdquo; får vi givet to ting. Et python-script som &amp;ldquo;krypterer&amp;rdquo; noget tekst den læser fra en fil. Denne fil har vi ikke til rådighed, da flaget ligger heri. Den bruger random i python og bruger en funktion der hedder &amp;ldquo;random.shuffle()&amp;rdquo;. Vi får også en fil, som har noget krypteret tekst i sig:
+ re3o ot iegntirt l,iuvfrmuneau crC0e tWD3etl cr, veteap0p,mepuDsoctyip2 i w gs!DD2ere!Coanmtirgol!rtpn dim! s7s1ei_rse:ct&#39;neonetyi osffh sm t2} _nmWhu ohrc3 l3,herhedimCupo!</description>
+    </item>
+    
     <item>
       <title>HackTheBox WEB: Weather App</title>
       <link>https://cavetownie.github.io/posts/htb_weatherapp/</link>
